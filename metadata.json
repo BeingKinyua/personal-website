@@ -1,0 +1,6 @@
+{
+  "name": "Victor Kinyua Portfolio",
+  "description": "Modern Digital Headquarters for Victor Kinyua - Software Engineer, AI Builder, and Product Thinker. Features interactive system blueprints, article reader, project scoping form, and a server-side Gemini AI Architect assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
