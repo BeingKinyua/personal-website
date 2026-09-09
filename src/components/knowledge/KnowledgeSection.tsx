@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { Network, BookOpen, FolderKanban, ArrowRight, ExternalLink, Cpu, Layers } from "lucide-react";
 import { KNOWLEDGE_NODES, KNOWLEDGE_EDGES } from "../../data/knowledge";
 import { KnowledgeNode } from "../../types/knowledge";
+import { TextReveal } from "../motion/TextReveal";
+import { WordReveal } from "../motion/WordReveal";
+import { HighlightText } from "../motion/HighlightText";
+import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 interface KnowledgeSectionProps {
   onOpenProject: (slug: string) => void;
@@ -27,9 +31,14 @@ export const KnowledgeSection: React.FC<KnowledgeSectionProps> = ({
   );
 
   return (
-    <section id="knowledge" className="py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100">
+    <section id="knowledge" className="relative py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100 overflow-hidden">
+      {/* Architectural Background Typography Parallax */}
+      <ParallaxBackgroundText className="text-[14vw] absolute top-6 right-6 z-0" triggerId="knowledge">
+        LATTICE
+      </ParallaxBackgroundText>
+
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 relative z-10">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2 rounded-full bg-indigo-400" />
@@ -37,17 +46,26 @@ export const KnowledgeSection: React.FC<KnowledgeSectionProps> = ({
               KNOWLEDGE // CONCEPT LATTICE
             </span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight">
+          <TextReveal
+            as="h2"
+            trigger="scroll"
+            duration={0.9}
+            className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight"
+          >
             Interconnected Systems &amp; Mental Models
-          </h2>
+          </TextReveal>
         </div>
-        <p className="text-sm text-zinc-400 max-w-md font-normal">
+        <WordReveal
+          trigger="scroll"
+          delay={0.2}
+          className="text-sm text-zinc-400 max-w-md font-normal"
+        >
           Ideas do not exist in isolation. This lattice maps the causal connections between distributed primitives, vector mathematics, foundational books, and AI engineering.
-        </p>
+        </WordReveal>
       </div>
 
       {/* Category Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none relative z-10">
         {categories.map((cat) => (
           <button
             key={cat}
@@ -64,7 +82,7 @@ export const KnowledgeSection: React.FC<KnowledgeSectionProps> = ({
       </div>
 
       {/* 2-Column Lattice Explorer: Nodes Grid + Dossier Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
         {/* Left: Interactive Nodes Grid */}
         <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-h-[640px] overflow-y-auto p-1 scrollbar-thin">
           {filteredNodes.map((node) => {

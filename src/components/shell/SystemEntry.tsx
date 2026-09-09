@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Terminal, ArrowRight, CheckCircle2, ShieldCheck, Cpu } from "lucide-react";
+import { TextReveal } from "../motion/TextReveal";
+import { SystemText } from "../motion/SystemText";
+import { BlurReveal } from "../motion/BlurReveal";
 
 interface SystemEntryProps {
   onEnter: () => void;
@@ -55,27 +58,37 @@ export const SystemEntry: React.FC<SystemEntryProps> = ({ onEnter }) => {
 
       <div className="relative z-10 w-full max-w-xl mx-auto flex flex-col items-center text-center">
         {/* Monogram Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-xs font-mono tracking-widest text-zinc-400 mb-8 backdrop-blur-md">
-          <Cpu className="w-3.5 h-3.5 text-blue-400" />
-          <span>VICTOR.OS // KERNEL v2.4.0</span>
-        </div>
+        <BlurReveal trigger="load" delay={0.1} duration={0.6}>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-xs font-mono tracking-widest text-zinc-400 mb-8 backdrop-blur-md">
+            <Cpu className="w-3.5 h-3.5 text-blue-400" />
+            <span>VICTOR.OS // KERNEL v2.4.0</span>
+          </div>
+        </BlurReveal>
 
-        {/* Title */}
+        {/* Title with SystemText decode */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-light tracking-tight text-white mb-6 font-mono">
-          VICTOR<span className="text-blue-400">.OS</span>
+          <SystemText variant="decode" trigger="load" duration={0.5}>
+            VICTOR.OS
+          </SystemText>
         </h1>
 
-        {/* Creed / Core Declaration */}
-        <div className="space-y-1.5 text-lg sm:text-xl font-normal text-zinc-300 mb-8 max-w-md">
-          <p className="tracking-wide">I build systems.</p>
-          <p className="tracking-wide">I explore ideas.</p>
-          <p className="tracking-wide">I solve problems.</p>
-        </div>
+        {/* Creed / Core Declaration using Masked Line Reveal */}
+        <TextReveal
+          trigger="load"
+          duration={0.9}
+          stagger={0.12}
+          delay={0.2}
+          className="space-y-1.5 text-lg sm:text-xl font-normal text-zinc-200 mb-8 max-w-md"
+        >
+          {"I build systems.\nI explore ideas.\nI solve problems."}
+        </TextReveal>
 
         {/* Discipline Specifier */}
-        <p className="text-xs sm:text-sm font-mono tracking-wider text-zinc-500 uppercase mb-12">
-          Software Engineer · AI Builder · Data & Product Thinker
-        </p>
+        <BlurReveal trigger="load" delay={0.4} duration={0.7}>
+          <p className="text-xs sm:text-sm font-mono tracking-wider text-zinc-500 uppercase mb-12">
+            Software Engineer · AI Builder · Data &amp; Product Thinker
+          </p>
+        </BlurReveal>
 
         {/* Action / Boot Sequence */}
         {!isBooting ? (

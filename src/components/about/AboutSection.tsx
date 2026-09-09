@@ -1,6 +1,9 @@
 import React from "react";
 import { User, Cpu, Compass, Layers, CheckCircle2, ArrowRight } from "lucide-react";
 import { TIMELINE_MILESTONES } from "../../data/timeline";
+import { TextReveal } from "../motion/TextReveal";
+import { WordReveal } from "../motion/WordReveal";
+import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 interface AboutSectionProps {
   onNavigateToContact: () => void;
@@ -8,18 +11,28 @@ interface AboutSectionProps {
 
 export const AboutSection: React.FC<AboutSectionProps> = ({ onNavigateToContact }) => {
   return (
-    <section id="about" className="py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100">
+    <section id="about" className="relative py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100 overflow-hidden">
+      {/* Architectural Background Typography Parallax */}
+      <ParallaxBackgroundText className="text-[16vw] absolute top-6 right-6 z-0" triggerId="about">
+        ABOUT
+      </ParallaxBackgroundText>
+
       {/* Section Header */}
-      <div className="mb-16">
+      <div className="mb-16 relative z-10">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-blue-400" />
           <span className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
             ABOUT // IDENTITY &amp; CREED
           </span>
         </div>
-        <h2 className="text-3xl sm:text-5xl font-mono font-medium text-white tracking-tight">
+        <TextReveal
+          as="h2"
+          trigger="scroll"
+          duration={0.9}
+          className="text-3xl sm:text-5xl font-mono font-medium text-white tracking-tight"
+        >
           Systems. Curiosity. Craft.
-        </h2>
+        </TextReveal>
       </div>
 
       {/* 1. WHO & HOW I THINK */}

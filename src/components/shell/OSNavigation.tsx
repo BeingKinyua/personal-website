@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Command, Sparkles, Terminal } from "lucide-react";
+import { SystemText } from "../motion/SystemText";
 
 interface OSNavigationProps {
   activeSection: string;
@@ -54,7 +55,9 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
           title="VictorOS System Home"
         >
           <span className="w-2 h-2 rounded-full bg-blue-500 group-hover:shadow-[0_0_8px_#3b82f6] transition-all" />
-          <span className="tracking-widest">VICTOR.OS</span>
+          <SystemText variant="tracking" duration={0.8} className="font-semibold tracking-wider">
+            VICTOR.OS
+          </SystemText>
         </button>
 
         <div className="hidden md:block w-px h-3.5 bg-white/10" />

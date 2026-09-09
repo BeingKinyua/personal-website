@@ -2,6 +2,10 @@ import React from "react";
 import { BookOpen, ArrowRight, Clock, Calendar, ArrowUpRight, FileCode2, Network, Shield } from "lucide-react";
 import { ARTICLES } from "../../data/articles";
 import { ArticleReaderModal } from "./ArticleReaderModal";
+import { TextReveal } from "../motion/TextReveal";
+import { WordReveal } from "../motion/WordReveal";
+import { BlurReveal } from "../motion/BlurReveal";
+import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 interface JournalSectionProps {
   selectedSlug: string | null;
@@ -13,9 +17,14 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
   onSelectArticle
 }) => {
   return (
-    <section id="journal" className="py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100">
+    <section id="journal" className="relative py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100 overflow-hidden">
+      {/* Architectural Background Typography Parallax */}
+      <ParallaxBackgroundText className="text-[14vw] absolute top-6 right-6 z-0" triggerId="journal">
+        JOURNAL
+      </ParallaxBackgroundText>
+
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12 relative z-10">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2 rounded-full bg-amber-400" />
@@ -23,17 +32,26 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
               JOURNAL // EDITORIAL ARCHIVE
             </span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight">
+          <TextReveal
+            as="h2"
+            trigger="scroll"
+            duration={0.9}
+            className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight"
+          >
             Engineering Thinking
-          </h2>
+          </TextReveal>
         </div>
-        <p className="text-sm text-zinc-400 max-w-md font-normal">
+        <WordReveal
+          trigger="scroll"
+          delay={0.2}
+          className="text-sm text-zinc-400 max-w-md font-normal"
+        >
           Essays on deterministic AI boundaries, storage engine physics, and the virtue of strict architectural constraints.
-        </p>
+        </WordReveal>
       </div>
 
       {/* Bento Grid Layout (Section 10) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
         {ARTICLES.map((article) => {
           const isWide = article.bentoSpan === "wide";
           return (

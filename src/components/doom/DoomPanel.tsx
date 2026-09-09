@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Sparkles, X, Send, ArrowRight, CornerDownLeft, ExternalLink, Bot, User, RefreshCw, Compass } from "lucide-react";
 import { askDoom } from "../../services/doom";
 import { DoomChatMessage, DoomAction, DoomReference } from "../../types/doom";
+import { DoomResponse } from "../motion/DoomResponse";
 
 interface DoomPanelProps {
   isOpen: boolean;
@@ -182,52 +183,26 @@ export const DoomPanel: React.FC<DoomPanelProps> = ({
                       : "bg-blue-600 text-white shadow-lg"
                   }`}
                 >
-                  <div className="whitespace-pre-wrap">{msg.text}</div>
-
-                  {/* References Cards */}
-                  {msg.references && msg.references.length > 0 && (
-                    <div className="mt-3.5 pt-3 border-t border-white/10 space-y-1.5">
-                      <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
-                        Referenced System Artifacts
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {msg.references.map((ref) => (
-                          <button
-                            key={ref.id}
-                            onClick={() => handleReferenceClick(ref)}
-                            className="flex items-center justify-between p-2 rounded-lg bg-white/[0.04] hover:bg-white/10 border border-white/5 text-left transition-all group cursor-pointer"
-                          >
-                            <div className="min-w-0 pr-2">
-                              <span className="text-[11px] font-medium text-white group-hover:text-blue-300 block truncate">
-                                {ref.title}
-                              </span>
-                              {ref.badge && (
-                                <span className="text-[9px] font-mono text-zinc-400 uppercase">
-                                  {ref.badge}
-                                </span>
-                              )}
-                            </div>
-                            <ExternalLink className="w-3 h-3 text-zinc-500 group-hover:text-blue-400 shrink-0" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Actions Buttons */}
-                  {msg.actions && msg.actions.length > 0 && (
-                    <div className="mt-3 pt-2.5 flex flex-wrap gap-1.5">
-                      {msg.actions.map((act, i) => (
-                        <button
-                          key={i}
-                          onClick={() => executeAction(act)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium text-blue-200 bg-blue-500/15 hover:bg-blue-500/30 border border-blue-500/30 transition-all cursor-pointer"
-                        >
-                          <span>{act.label}</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
-                      ))}
-                    </div>
+                  {isDoom ? (
+                    <DoomResponse
+                      message={msg.text}
+                      references={msg.references}
+                      actions={msg.actions}
+                      onOpenProject={(slug) => {
+                        onClose();
+                        onOpenProject(slug);
+                      }}
+                      onOpenArticle={(slug) => {
+                        onClose();
+                        onOpenArticle(slug);
+                      }}
+                      onNavigate={(sec) => {
+                        onClose();
+                        onNavigate(sec);
+                      }}
+                    />
+                  ) : (
+                    <div className="whitespace-pre-wrap">{msg.text}</div>
                   )}
 
                   <div

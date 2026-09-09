@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { Mail, Github, Linkedin, Twitter, Copy, Check, Send, Terminal, MessageSquareCode } from "lucide-react";
+import { TextReveal } from "../motion/TextReveal";
+import { WordReveal } from "../motion/WordReveal";
+import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 export const ContactSection: React.FC = () => {
   const [copied, setCopied] = useState(false);
@@ -30,21 +33,35 @@ export const ContactSection: React.FC = () => {
   };
 
   return (
-    <section id="contact" className="py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100">
+    <section id="contact" className="relative py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100 overflow-hidden">
+      {/* Architectural Background Typography Parallax */}
+      <ParallaxBackgroundText className="text-[16vw] absolute top-6 right-6 z-0" triggerId="contact">
+        CONNECT
+      </ParallaxBackgroundText>
+
       {/* Header */}
-      <div className="mb-14">
+      <div className="mb-14 relative z-10">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400" />
           <span className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
             CONTACT // DIRECT CHANNELS
           </span>
         </div>
-        <h2 className="text-3xl sm:text-5xl font-mono font-medium text-white tracking-tight mb-4">
+        <TextReveal
+          as="h2"
+          trigger="scroll"
+          duration={0.9}
+          className="text-3xl sm:text-5xl font-mono font-medium text-white tracking-tight mb-4"
+        >
           Have a problem worth solving?
-        </h2>
-        <p className="text-base sm:text-lg text-zinc-400 max-w-xl font-normal leading-relaxed">
+        </TextReveal>
+        <WordReveal
+          trigger="scroll"
+          delay={0.2}
+          className="text-base sm:text-lg text-zinc-400 max-w-xl font-normal leading-relaxed"
+        >
           Whether you are exploring hard distributed systems, architecting high-throughput AI pipelines, or building a startup from zero to one.
-        </p>
+        </WordReveal>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

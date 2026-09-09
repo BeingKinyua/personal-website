@@ -4,6 +4,9 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, Github, ExternalLink, ChevronLeft, ChevronRight, Cpu } from "lucide-react";
 import { PROJECTS } from "../../data/projects";
 import { ProjectDetailModal } from "./ProjectDetailModal";
+import { TextReveal } from "../motion/TextReveal";
+import { HorizontalText } from "../motion/HorizontalText";
+import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -79,6 +82,11 @@ export const WorkSection: React.FC<WorkSectionProps> = ({
       {/* Background Architectural Grid */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
 
+      {/* Background Typography Parallax */}
+      <ParallaxBackgroundText className="text-[16vw] absolute top-4 left-6 z-0" triggerId="work">
+        WORK
+      </ParallaxBackgroundText>
+
       {/* Top Section Header */}
       <div className="px-6 max-w-7xl mx-auto w-full mb-8 lg:mb-6 pt-6 z-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
@@ -88,9 +96,14 @@ export const WorkSection: React.FC<WorkSectionProps> = ({
               WORK // SYSTEM SHOWCASE
             </span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight">
+          <TextReveal
+            as="h2"
+            trigger="scroll"
+            duration={0.9}
+            className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight"
+          >
             Engineered Systems
-          </h2>
+          </TextReveal>
         </div>
 
         {/* Navigation Indicators */}
@@ -177,9 +190,15 @@ export const WorkSection: React.FC<WorkSectionProps> = ({
               </div>
 
               {/* Title & Subtitle */}
-              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-mono font-medium text-white mb-3 tracking-tight group-hover:text-blue-300 transition-colors">
+              <HorizontalText
+                direction="left"
+                distance={40}
+                trigger="scroll"
+                className="text-2xl sm:text-3xl lg:text-4xl font-mono font-medium text-white mb-3 tracking-tight group-hover:text-blue-300 transition-colors"
+                as="h3"
+              >
                 {project.title}
-              </h3>
+              </HorizontalText>
               <p className="text-sm sm:text-base text-zinc-300 leading-relaxed mb-6 max-w-2xl font-normal">
                 {project.subtitle}
               </p>

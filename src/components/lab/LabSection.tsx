@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { FlaskConical, Terminal, Activity, ArrowRight, Code2, CheckCircle2, PauseCircle, HelpCircle } from "lucide-react";
 import { EXPERIMENTS } from "../../data/experiments";
 import { Experiment, ExperimentStatus } from "../../types/experiment";
+import { TextReveal } from "../motion/TextReveal";
+import { WordReveal } from "../motion/WordReveal";
+import { SystemText } from "../motion/SystemText";
+import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 export const LabSection: React.FC = () => {
   const [filter, setFilter] = useState<string>("ALL");
@@ -21,9 +25,14 @@ export const LabSection: React.FC = () => {
     : EXPERIMENTS.filter((e) => e.status === filter);
 
   return (
-    <section id="lab" className="py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100">
+    <section id="lab" className="relative py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100 overflow-hidden">
+      {/* Architectural Background Typography Parallax */}
+      <ParallaxBackgroundText className="text-[16vw] absolute top-6 left-6 z-0" triggerId="lab">
+        LAB
+      </ParallaxBackgroundText>
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 relative z-10">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -31,17 +40,26 @@ export const LabSection: React.FC = () => {
               LAB // EXPERIMENTAL SANDBOX
             </span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight">
-            Unfinished Ideas & Active R&amp;D
-          </h2>
+          <TextReveal
+            as="h2"
+            trigger="scroll"
+            duration={0.9}
+            className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight"
+          >
+            Unfinished Ideas &amp; Active R&amp;D
+          </TextReveal>
         </div>
-        <p className="text-sm text-zinc-400 max-w-md font-normal">
+        <WordReveal
+          trigger="scroll"
+          delay={0.2}
+          className="text-sm text-zinc-400 max-w-md font-normal"
+        >
           Work contains finished systems. Lab is where hypotheses are formulated, tested, benchmarked, or archived.
-        </p>
+        </WordReveal>
       </div>
 
       {/* Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none relative z-10">
         {["ALL", "Building", "Prototype", "Exploring", "Idea"].map((status) => (
           <button
             key={status}
@@ -58,7 +76,7 @@ export const LabSection: React.FC = () => {
       </div>
 
       {/* Experiments List */}
-      <div className="space-y-6">
+      <div className="space-y-6 relative z-10">
         {filteredExperiments.map((exp) => {
           const isExpanded = expandedId === exp.id;
           const statusStyle = statusColors[exp.status];
@@ -75,9 +93,14 @@ export const LabSection: React.FC = () => {
               >
                 <div className="space-y-2 max-w-3xl">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono font-semibold text-emerald-400">
+                    <SystemText
+                      variant="decode"
+                      trigger="scroll"
+                      duration={0.4}
+                      className="text-xs font-mono font-semibold text-emerald-400"
+                    >
                       {exp.number}
-                    </span>
+                    </SystemText>
                     <span className="text-zinc-600">|</span>
                     <span className="text-xs font-mono text-zinc-400">
                       {exp.category}
