@@ -141,7 +141,7 @@ export default function App() {
           />
 
           {/* System Telemetry Status Bar */}
-          <OSStatus />
+          // <OSStatus />
 
           {/* Main Operating Environment Content */}
           <main id="victoros-main-content">

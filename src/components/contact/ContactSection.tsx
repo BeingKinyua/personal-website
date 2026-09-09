@@ -11,7 +11,7 @@ export const ContactSection: React.FC = () => {
   const [senderEmail, setSenderEmail] = useState("");
   const [isSent, setIsSent] = useState(false);
 
-  const emailAddress = "victor.kinyua@victoros.io";
+  const emailAddress = "kinyuaviktor@gmail.com";
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(emailAddress);
@@ -98,7 +98,7 @@ export const ContactSection: React.FC = () => {
           {/* Social Profiles Grid */}
           <div className="grid grid-cols-3 gap-3">
             <a
-              href="https://github.com"
+              href="https://github.com/BeingKinyua"
               target="_blank"
               rel="noreferrer"
               className="p-4 rounded-2xl border border-white/10 bg-[#0d0f12] hover:bg-[#13161b] hover:border-white/20 transition-all flex flex-col items-center justify-center text-center gap-2 group"
@@ -108,7 +108,7 @@ export const ContactSection: React.FC = () => {
             </a>
 
             <a
-              href="https://linkedin.com"
+              href="https://linkedin.com/in/victor-kinyua-46aa80183"
               target="_blank"
               rel="noreferrer"
               className="p-4 rounded-2xl border border-white/10 bg-[#0d0f12] hover:bg-[#13161b] hover:border-white/20 transition-all flex flex-col items-center justify-center text-center gap-2 group"
@@ -118,7 +118,7 @@ export const ContactSection: React.FC = () => {
             </a>
 
             <a
-              href="https://x.com"
+              href="https://x.com/Viktorkinyua98"
               target="_blank"
               rel="noreferrer"
               className="p-4 rounded-2xl border border-white/10 bg-[#0d0f12] hover:bg-[#13161b] hover:border-white/20 transition-all flex flex-col items-center justify-center text-center gap-2 group"
