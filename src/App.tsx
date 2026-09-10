@@ -273,6 +273,7 @@ export default function App() {
               handleOpenArticle(slug);
             }}
             onAskDoom={handleAskDoomWithPrompt}
+            lenisRef={lenisRef}
           />
 
           {/* Dr. Doom System Intelligence Assistant */}
@@ -287,6 +288,7 @@ export default function App() {
             onOpenArticle={(slug) => {
               handleOpenArticle(slug);
             }}
+            lenisRef={lenisRef}
           />
 
           {/* Immersive Reader Chamber: Journal Article Experience */}

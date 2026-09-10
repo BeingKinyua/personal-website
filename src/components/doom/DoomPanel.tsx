@@ -3,6 +3,8 @@ import { Sparkles, X, Send, ArrowRight, CornerDownLeft, ExternalLink, Bot, User,
 import { askDoom } from "../../services/doom";
 import { DoomChatMessage, DoomAction, DoomReference } from "../../types/doom";
 import { DoomResponse } from "../motion/DoomResponse";
+import { useScrollLock } from "../../hooks/useScrollLock";
+import Lenis from "lenis";
 
 interface DoomPanelProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface DoomPanelProps {
   onNavigate: (sectionId: string) => void;
   onOpenProject: (slug: string) => void;
   onOpenArticle: (slug: string) => void;
+  lenisRef?: React.RefObject<Lenis | null>;
 }
 
 export const DoomPanel: React.FC<DoomPanelProps> = ({
@@ -19,8 +22,15 @@ export const DoomPanel: React.FC<DoomPanelProps> = ({
   onClose,
   onNavigate,
   onOpenProject,
-  onOpenArticle
+  onOpenArticle,
+  lenisRef,
 }) => {
+  // Lock background scroll and pause Lenis while Dr. Doom modal is open
+  useScrollLock({
+    lock: isOpen,
+    lenisRef,
+  });
+
   const [messages, setMessages] = useState<DoomChatMessage[]>([
     {
       id: "initial-welcome",
@@ -38,6 +48,7 @@ export const DoomPanel: React.FC<DoomPanelProps> = ({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -49,8 +60,34 @@ export const DoomPanel: React.FC<DoomPanelProps> = ({
     }
   }, [isOpen, initialPrompt]);
 
+  // Isolate wheel and touch events inside the messages container so they don't bubble to window or Lenis
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!isOpen) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const stopPropagation = (e: Event) => {
+      e.stopPropagation();
+    };
+
+    container.addEventListener("wheel", stopPropagation, { passive: true });
+    container.addEventListener("touchmove", stopPropagation, { passive: true });
+
+    return () => {
+      container.removeEventListener("wheel", stopPropagation);
+      container.removeEventListener("touchmove", stopPropagation);
+    };
+  }, [isOpen]);
+
+  // Smooth scroll to latest message when new messages are received
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   }, [messages, loading]);
 
   const handleSendPrompt = async (textToSend?: string) => {
@@ -123,11 +160,13 @@ export const DoomPanel: React.FC<DoomPanelProps> = ({
   return (
     <div
       id="doom-panel-backdrop"
+      data-lenis-prevent="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fadeIn"
       onClick={onClose}
     >
       <div
         id="doom-panel-container"
+        data-lenis-prevent="true"
         className="relative w-full max-w-2xl h-[85vh] max-h-[720px] rounded-2xl border border-blue-500/20 bg-[#090b0e] shadow-[0_25px_80px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden text-zinc-100"
         onClick={(e) => e.stopPropagation()}
       >
@@ -162,7 +201,17 @@ export const DoomPanel: React.FC<DoomPanelProps> = ({
         </div>
 
         {/* Message Stream */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <div
+          ref={messagesContainerRef}
+          id="doom-messages-stream"
+          data-lenis-prevent="true"
+          tabIndex={0}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4 scrollbar-thin outline-none"
+          style={{
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+          }}
+        >
           {messages.map((msg) => {
             const isDoom = msg.sender === "doom";
             return (

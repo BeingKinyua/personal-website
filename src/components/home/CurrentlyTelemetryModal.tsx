@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { X, Terminal, Cpu, CheckCircle2, ArrowRight } from "lucide-react";
 import { CurrentlyItem } from "../../types/common";
+import { useScrollLock } from "../../hooks/useScrollLock";
 
 interface CurrentlyTelemetryModalProps {
   item: CurrentlyItem | null;
@@ -8,16 +9,42 @@ interface CurrentlyTelemetryModalProps {
 }
 
 export const CurrentlyTelemetryModal: React.FC<CurrentlyTelemetryModalProps> = ({ item, onClose }) => {
+  useScrollLock({
+    lock: !!item,
+  });
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!item) return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const stopPropagation = (e: Event) => {
+      e.stopPropagation();
+    };
+
+    el.addEventListener("wheel", stopPropagation, { passive: true });
+    el.addEventListener("touchmove", stopPropagation, { passive: true });
+
+    return () => {
+      el.removeEventListener("wheel", stopPropagation);
+      el.removeEventListener("touchmove", stopPropagation);
+    };
+  }, [item]);
+
   if (!item) return null;
 
   return (
     <div
       id="telemetry-modal-backdrop"
+      data-lenis-prevent="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
       onClick={onClose}
     >
       <div
         id="telemetry-modal-content"
+        data-lenis-prevent="true"
         className="relative w-full max-w-xl rounded-2xl border border-white/10 bg-[#0d0f12] p-6 shadow-2xl text-zinc-100 flex flex-col max-h-[85vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -45,7 +72,15 @@ export const CurrentlyTelemetryModal: React.FC<CurrentlyTelemetryModalProps> = (
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto py-4 space-y-4">
+        <div
+          ref={scrollRef}
+          data-lenis-prevent="true"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-4 space-y-4 scrollbar-thin outline-none"
+          style={{
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+          }}
+        >
           <p className="text-sm text-zinc-300 leading-relaxed">
             {item.details}
           </p>

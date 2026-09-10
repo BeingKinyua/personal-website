@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, Command, ArrowRight, CornerDownLeft, Sparkles, FolderKanban, BookOpen, FlaskConical, Network, Compass, X } from "lucide-react";
 import { searchVictorOS, SearchResultItem } from "../../services/searchService";
+import { useScrollLock } from "../../hooks/useScrollLock";
+import Lenis from "lenis";
 
 interface CommandCenterProps {
   isOpen: boolean;
@@ -9,6 +11,7 @@ interface CommandCenterProps {
   onOpenProject: (slug: string) => void;
   onOpenArticle: (slug: string) => void;
   onAskDoom: (prompt: string) => void;
+  lenisRef?: React.RefObject<Lenis | null>;
 }
 
 export const CommandCenter: React.FC<CommandCenterProps> = ({
@@ -17,13 +20,38 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
   onNavigate,
   onOpenProject,
   onOpenArticle,
-  onAskDoom
+  onAskDoom,
+  lenisRef,
 }) => {
+  useScrollLock({
+    lock: isOpen,
+    lenisRef,
+  });
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
   const inputRef = useRef<HTMLInputElement>(null);
+  const resultsContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const container = resultsContainerRef.current;
+    if (!container) return;
+
+    const stopPropagation = (e: Event) => {
+      e.stopPropagation();
+    };
+
+    container.addEventListener("wheel", stopPropagation, { passive: true });
+    container.addEventListener("touchmove", stopPropagation, { passive: true });
+
+    return () => {
+      container.removeEventListener("wheel", stopPropagation);
+      container.removeEventListener("touchmove", stopPropagation);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -98,11 +126,13 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
   return (
     <div
       id="command-center-modal"
+      data-lenis-prevent="true"
       className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/75 backdrop-blur-md animate-fadeIn"
       onClick={onClose}
     >
       <div
         id="command-center-dialog"
+        data-lenis-prevent="true"
         className="relative w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0d0f11] shadow-[0_25px_70px_rgba(0,0,0,0.8)] overflow-hidden text-zinc-100 flex flex-col max-h-[78vh]"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
@@ -151,7 +181,17 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
         </div>
 
         {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 divide-y divide-white/[0.03]">
+        <div
+          ref={resultsContainerRef}
+          id="cmd-results-list"
+          data-lenis-prevent="true"
+          tabIndex={0}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 space-y-1 divide-y divide-white/[0.03] scrollbar-thin outline-none"
+          style={{
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+          }}
+        >
           {results.length === 0 ? (
             <div className="py-12 text-center text-zinc-500 font-mono text-xs">
               No matching records located in VictorOS. Try another search or ask Dr. Doom.
