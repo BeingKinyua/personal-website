@@ -205,6 +205,7 @@ export default function App() {
               setDoomInitialPrompt("");
               setIsDoomOpen(true);
             }}
+            lenisRef={lenisRef}
           />
 
           {/* System Telemetry Status Bar */}
