@@ -39,18 +39,11 @@ export function useScrollLock({ lock, lenisRef, onLockChange }: ScrollLockOption
 
       // 4. Save original document/body inline styles
       const originalBodyOverflow = document.body.style.overflow;
-      const originalBodyPosition = document.body.style.position;
-      const originalBodyTop = document.body.style.top;
-      const originalBodyWidth = document.body.style.width;
       const originalBodyPaddingRight = document.body.style.paddingRight;
-      const originalHtmlOverflow = document.documentElement.style.overflow;
 
-      // 5. Lock body at current offset
+      // 5. Lock body scroll cleanly without position:fixed or html:overflow-hidden
+      // This prevents locking up inner scroll containers inside iframes or WebKit viewports
       document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.top = `-${currentScrollY}px`;
-      document.body.style.width = "100%";
-      document.documentElement.style.overflow = "hidden";
 
       if (scrollbarWidth > 0) {
         document.body.style.paddingRight = `${scrollbarWidth}px`;
@@ -62,14 +55,12 @@ export function useScrollLock({ lock, lenisRef, onLockChange }: ScrollLockOption
       return () => {
         // Unlock and restore original styles
         document.body.style.overflow = originalBodyOverflow;
-        document.body.style.position = originalBodyPosition;
-        document.body.style.top = originalBodyTop;
-        document.body.style.width = originalBodyWidth;
         document.body.style.paddingRight = originalBodyPaddingRight;
-        document.documentElement.style.overflow = originalHtmlOverflow;
 
-        // Restore exact scroll position
-        window.scrollTo(0, scrollYRef.current);
+        // Restore exact scroll position if shifted
+        if (window.scrollY !== scrollYRef.current) {
+          window.scrollTo(0, scrollYRef.current);
+        }
 
         // Resume Lenis
         if (lenisRef?.current) {
@@ -86,13 +77,11 @@ export function useScrollLock({ lock, lenisRef, onLockChange }: ScrollLockOption
     } else if (!lock && isLockedRef.current) {
       // Manual unlock
       document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
       document.body.style.paddingRight = "";
-      document.documentElement.style.overflow = "";
 
-      window.scrollTo(0, scrollYRef.current);
+      if (window.scrollY !== scrollYRef.current) {
+        window.scrollTo(0, scrollYRef.current);
+      }
 
       if (lenisRef?.current) {
         try {

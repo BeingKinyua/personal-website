@@ -118,6 +118,15 @@ export default function App() {
       gestureOrientation: "vertical",
       smoothWheel: true,
       wheelMultiplier: 1.1,
+      prevent: (node) => {
+        return (
+          node instanceof HTMLElement &&
+          (node.hasAttribute("data-lenis-prevent") ||
+            Boolean(node.closest("[data-lenis-prevent]")) ||
+            Boolean(node.closest("#victoros-immersive-overlay")) ||
+            Boolean(node.closest("#reader-scroll-viewport")))
+        );
+      },
     });
 
     lenisRef.current = lenis;

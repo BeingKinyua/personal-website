@@ -41,6 +41,30 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
     };
   }, [isOpen, onClose]);
 
+  // Auto-focus scroller on open for keyboard scrolling and isolate wheel/touch propagation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const scroller = scrollerRef.current;
+    if (scroller) {
+      // Focus container so ArrowDown, PageDown, Space keys scroll immediately
+      scroller.focus({ preventScroll: true });
+
+      // Stop wheel and touch event propagation to window so external Lenis/global listeners never intercept or preventDefault
+      const handleScrollGesture = (e: Event) => {
+        e.stopPropagation();
+      };
+
+      scroller.addEventListener("wheel", handleScrollGesture, { passive: true });
+      scroller.addEventListener("touchmove", handleScrollGesture, { passive: true });
+
+      return () => {
+        scroller.removeEventListener("wheel", handleScrollGesture);
+        scroller.removeEventListener("touchmove", handleScrollGesture);
+      };
+    }
+  }, [isOpen, scrollerRef]);
+
   // Subtle background VictorOS depth recede effect
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -91,6 +115,7 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
   return (
     <div
       id="victoros-immersive-overlay"
+      data-lenis-prevent="true"
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-[100] flex flex-col bg-black/90 backdrop-blur-2xl animate-fadeIn text-zinc-100 overflow-hidden"
@@ -102,8 +127,9 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
       <div
         ref={scrollerRef}
         id="reader-scroll-viewport"
-        tabIndex={-1}
-        className={`w-full h-full overflow-y-auto overscroll-contain scrollbar-thin outline-none ${className}`}
+        data-lenis-prevent="true"
+        tabIndex={0}
+        className={`flex-1 min-h-0 w-full overflow-y-auto overscroll-contain scrollbar-thin outline-none ${className}`}
         style={{
           WebkitOverflowScrolling: "touch",
           overscrollBehavior: "contain",
