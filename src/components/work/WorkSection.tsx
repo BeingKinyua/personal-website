@@ -3,7 +3,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, Github, ExternalLink, ChevronLeft, ChevronRight, Cpu } from "lucide-react";
 import { PROJECTS } from "../../data/projects";
-import { ProjectDetailModal } from "./ProjectDetailModal";
 import { TextReveal } from "../motion/TextReveal";
 import { HorizontalText } from "../motion/HorizontalText";
 import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
@@ -267,13 +266,6 @@ export const WorkSection: React.FC<WorkSectionProps> = ({
           </div>
         ))}
       </div>
-
-      {/* Project Detail Modal */}
-      <ProjectDetailModal
-        slug={selectedSlug}
-        onClose={() => onSelectProject(null)}
-        onSelectProject={onSelectProject}
-      />
     </section>
   );
 };

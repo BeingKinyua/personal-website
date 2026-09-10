@@ -1,7 +1,6 @@
 import React from "react";
 import { BookOpen, ArrowRight, Clock, Calendar, ArrowUpRight, FileCode2, Network, Shield } from "lucide-react";
 import { ARTICLES } from "../../data/articles";
-import { ArticleReaderModal } from "./ArticleReaderModal";
 import { TextReveal } from "../motion/TextReveal";
 import { WordReveal } from "../motion/WordReveal";
 import { BlurReveal } from "../motion/BlurReveal";
@@ -134,13 +133,6 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
           );
         })}
       </div>
-
-      {/* Article Reader Modal */}
-      <ArticleReaderModal
-        slug={selectedSlug}
-        onClose={() => onSelectArticle(null)}
-        onSelectArticle={onSelectArticle}
-      />
     </section>
   );
 };

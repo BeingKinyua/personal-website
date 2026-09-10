@@ -22,6 +22,10 @@ import { KnowledgeSection } from "./components/knowledge/KnowledgeSection";
 import { AboutSection } from "./components/about/AboutSection";
 import { ContactSection } from "./components/contact/ContactSection";
 
+// Immersive Reader Chambers
+import { JournalReader } from "./components/journal/JournalReader";
+import { ProjectReader } from "./components/work/ProjectReader";
+
 // Hooks
 import { useCommandCenter } from "./hooks/useCommandCenter";
 
@@ -48,6 +52,60 @@ export default function App() {
   const [doomInitialPrompt, setDoomInitialPrompt] = useState<string>("");
 
   const lenisRef = useRef<Lenis | null>(null);
+
+  // Route Synchronization & Deep-Linking (PopState and Initial URL check)
+  useEffect(() => {
+    const parseCurrentRoute = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+
+      const journalMatch = path.match(/^\/journal\/([^/]+)/) || hash.match(/^#\/?journal\/([^/]+)/);
+      if (journalMatch) {
+        setSelectedArticleSlug(journalMatch[1]);
+        setSelectedProjectSlug(null);
+        setHasEnteredSystem(true);
+        return;
+      }
+
+      const workMatch = path.match(/^\/work\/([^/]+)/) || hash.match(/^#\/?work\/([^/]+)/);
+      if (workMatch) {
+        setSelectedProjectSlug(workMatch[1]);
+        setSelectedArticleSlug(null);
+        setHasEnteredSystem(true);
+        return;
+      }
+
+      // Root or generic section anchor
+      if (!path.startsWith("/journal") && !path.startsWith("/work")) {
+        setSelectedArticleSlug(null);
+        setSelectedProjectSlug(null);
+      }
+    };
+
+    parseCurrentRoute();
+    window.addEventListener("popstate", parseCurrentRoute);
+    return () => window.removeEventListener("popstate", parseCurrentRoute);
+  }, []);
+
+  const handleOpenArticle = (slug: string) => {
+    setSelectedArticleSlug(slug);
+    setSelectedProjectSlug(null);
+    window.history.pushState({ reader: "journal", slug }, "", `/journal/${slug}`);
+  };
+
+  const handleOpenProject = (slug: string) => {
+    setSelectedProjectSlug(slug);
+    setSelectedArticleSlug(null);
+    window.history.pushState({ reader: "project", slug }, "", `/work/${slug}`);
+  };
+
+  const handleCloseReader = () => {
+    setSelectedArticleSlug(null);
+    setSelectedProjectSlug(null);
+    if (window.location.pathname.startsWith("/journal") || window.location.pathname.startsWith("/work")) {
+      window.history.pushState(null, "", "/");
+    }
+  };
 
   // Smooth scroll initialization with Lenis
   useEffect(() => {
@@ -157,13 +215,13 @@ export default function App() {
             {/* 2. Work Showcase Module */}
             <WorkSection
               selectedSlug={selectedProjectSlug}
-              onSelectProject={setSelectedProjectSlug}
+              onSelectProject={handleOpenProject}
             />
 
             {/* 3. Journal Editorial Archive Module */}
             <JournalSection
               selectedSlug={selectedArticleSlug}
-              onSelectArticle={setSelectedArticleSlug}
+              onSelectArticle={handleOpenArticle}
             />
 
             {/* 4. Laboratory R&D Sandbox Module */}
@@ -172,12 +230,10 @@ export default function App() {
             {/* 5. Knowledge Concept Lattice Module */}
             <KnowledgeSection
               onOpenProject={(slug) => {
-                setSelectedProjectSlug(slug);
-                scrollToSection("work");
+                handleOpenProject(slug);
               }}
               onOpenArticle={(slug) => {
-                setSelectedArticleSlug(slug);
-                scrollToSection("journal");
+                handleOpenArticle(slug);
               }}
             />
 
@@ -202,12 +258,10 @@ export default function App() {
             onClose={closeCmd}
             onNavigate={scrollToSection}
             onOpenProject={(slug) => {
-              setSelectedProjectSlug(slug);
-              scrollToSection("work");
+              handleOpenProject(slug);
             }}
             onOpenArticle={(slug) => {
-              setSelectedArticleSlug(slug);
-              scrollToSection("journal");
+              handleOpenArticle(slug);
             }}
             onAskDoom={handleAskDoomWithPrompt}
           />
@@ -219,13 +273,27 @@ export default function App() {
             onClose={() => setIsDoomOpen(false)}
             onNavigate={scrollToSection}
             onOpenProject={(slug) => {
-              setSelectedProjectSlug(slug);
-              scrollToSection("work");
+              handleOpenProject(slug);
             }}
             onOpenArticle={(slug) => {
-              setSelectedArticleSlug(slug);
-              scrollToSection("journal");
+              handleOpenArticle(slug);
             }}
+          />
+
+          {/* Immersive Reader Chamber: Journal Article Experience */}
+          <JournalReader
+            slug={selectedArticleSlug}
+            onClose={handleCloseReader}
+            onSelectArticle={handleOpenArticle}
+            lenisRef={lenisRef}
+          />
+
+          {/* Immersive Project Chamber: Case Study Architecture Experience */}
+          <ProjectReader
+            slug={selectedProjectSlug}
+            onClose={handleCloseReader}
+            onSelectProject={handleOpenProject}
+            lenisRef={lenisRef}
           />
         </>
       )}
