@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { createBackendRouter } from "./src/lib/api/router.ts";
 
 // Load environment variables
 dotenv.config();
@@ -35,6 +36,12 @@ async function startServer() {
     }
     return ai;
   }
+
+  // VictorOS Phase A: Mount Backend Foundation API Router
+  app.use("/api/v1", createBackendRouter());
+  app.get("/api/health", (req, res) => {
+    res.redirect(307, "/api/v1/health");
+  });
 
   // API Route: AI Digital Clone Chatbot
   app.post("/api/chat", async (req, res) => {
