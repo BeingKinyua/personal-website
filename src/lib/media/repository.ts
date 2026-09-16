@@ -118,4 +118,42 @@ export class MediaRepository {
       throw new DatabaseError("Database failure deleting media asset", { id, error: String(err) });
     }
   }
+
+  async uploadStorageObject(
+    bucket: string,
+    path: string,
+    fileBody: Buffer | Uint8Array | Blob,
+    contentType: string
+  ): Promise<{ publicUrl: string }> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client.storage.from(bucket).upload(path, fileBody, {
+        contentType,
+        upsert: true,
+      });
+
+      if (error) {
+        throw new DatabaseError(`Supabase Storage upload failed: ${error.message}`);
+      }
+
+      const { data } = client.storage.from(bucket).getPublicUrl(path);
+      return { publicUrl: data.publicUrl };
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Storage upload failed", { bucket, path, error: String(err) });
+    }
+  }
+
+  async deleteStorageObject(bucket: string, path: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client.storage.from(bucket).remove([path]);
+      if (error) {
+        throw new DatabaseError(`Supabase Storage deletion failed: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Storage deletion failed", { bucket, path, error: String(err) });
+    }
+  }
 }

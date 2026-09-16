@@ -183,4 +183,207 @@ export class ProjectRepository {
       throw new DatabaseError("Database failure querying project sections", { projectId, error: String(err) });
     }
   }
+
+  async findSectionById(sectionId: string): Promise<SectionRow | null> {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from("project_sections")
+        .select("*")
+        .eq("id", sectionId)
+        .maybeSingle();
+
+      if (error) {
+        throw new DatabaseError(`Failed to fetch project section by id: ${error.message}`, { sectionId });
+      }
+      return data;
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure querying section by id", { sectionId, error: String(err) });
+    }
+  }
+
+  async createSection(projectId: string, input: { title: string; content: string; order_index?: number }): Promise<SectionRow> {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from("project_sections")
+        .insert({
+          project_id: projectId,
+          title: input.title,
+          content: input.content,
+          order_index: input.order_index ?? 0,
+        })
+        .select("*")
+        .single();
+
+      if (error || !data) {
+        throw new DatabaseError(`Failed to create project section: ${error?.message || "Unknown error"}`);
+      }
+      return data;
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure creating project section", { projectId, error: String(err) });
+    }
+  }
+
+  async updateSection(sectionId: string, input: { title?: string; content?: string; order_index?: number }): Promise<SectionRow> {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from("project_sections")
+        .update(input)
+        .eq("id", sectionId)
+        .select("*")
+        .single();
+
+      if (error || !data) {
+        throw new DatabaseError(`Failed to update project section: ${error?.message || "Not found"}`);
+      }
+      return data;
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure updating project section", { sectionId, error: String(err) });
+    }
+  }
+
+  async deleteSection(sectionId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client.from("project_sections").delete().eq("id", sectionId);
+      if (error) {
+        throw new DatabaseError(`Failed to delete project section: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure deleting project section", { sectionId, error: String(err) });
+    }
+  }
+
+  async reorderSections(projectId: string, sectionOrders: { id: string; order_index: number }[]): Promise<void> {
+    try {
+      const client = await this.getClient();
+      for (const item of sectionOrders) {
+        const { error } = await client
+          .from("project_sections")
+          .update({ order_index: item.order_index })
+          .eq("id", item.id)
+          .eq("project_id", projectId);
+
+        if (error) {
+          throw new DatabaseError(`Failed to reorder section ${item.id}: ${error.message}`);
+        }
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure reordering project sections", { projectId, error: String(err) });
+    }
+  }
+
+  async attachTag(projectId: string, tagId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("project_tags")
+        .upsert({ project_id: projectId, tag_id: tagId }, { onConflict: "project_id,tag_id" });
+
+      if (error) {
+        throw new DatabaseError(`Failed to attach tag: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure attaching tag to project", { projectId, tagId, error: String(err) });
+    }
+  }
+
+  async detachTag(projectId: string, tagId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("project_tags")
+        .delete()
+        .eq("project_id", projectId)
+        .eq("tag_id", tagId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to detach tag: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure detaching tag from project", { projectId, tagId, error: String(err) });
+    }
+  }
+
+  async attachTechnology(projectId: string, technologyId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("project_technologies")
+        .upsert({ project_id: projectId, technology_id: technologyId }, { onConflict: "project_id,technology_id" });
+
+      if (error) {
+        throw new DatabaseError(`Failed to attach technology: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure attaching technology to project", { projectId, technologyId, error: String(err) });
+    }
+  }
+
+  async detachTechnology(projectId: string, technologyId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("project_technologies")
+        .delete()
+        .eq("project_id", projectId)
+        .eq("technology_id", technologyId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to detach technology: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure detaching technology from project", { projectId, technologyId, error: String(err) });
+    }
+  }
+
+  async attachMedia(projectId: string, mediaAssetId: string, role = "gallery", orderIndex = 0): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("project_media")
+        .insert({
+          project_id: projectId,
+          media_asset_id: mediaAssetId,
+          role,
+          order_index: orderIndex,
+        });
+
+      if (error) {
+        throw new DatabaseError(`Failed to attach media: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure attaching media to project", { projectId, mediaAssetId, error: String(err) });
+    }
+  }
+
+  async detachMedia(projectId: string, mediaAssetId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("project_media")
+        .delete()
+        .eq("project_id", projectId)
+        .eq("media_asset_id", mediaAssetId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to detach media: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure detaching media from project", { projectId, mediaAssetId, error: String(err) });
+    }
+  }
 }

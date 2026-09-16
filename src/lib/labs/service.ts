@@ -4,11 +4,13 @@
  */
 
 import { LabRepository } from "./repository";
-import { createLabSchema, updateLabSchema, labFilterSchema } from "./schemas";
+import { createLabSchema, updateLabSchema, labFilterSchema, attachLabMediaSchema } from "./schemas";
 import { assertCanManageLabs, assertCanDelete } from "../auth/authorization";
 import type { ProfileRecord } from "../auth/authorization";
 import { ValidationError, NotFoundError, ConflictError } from "../shared/errors";
 import { parsePagination, buildPaginationMeta } from "../shared/utils";
+import { revalidateContent, CACHE_TAGS } from "../shared/revalidate";
+import { logger } from "../shared/logger";
 import type { Lab, LabFilter, CreateLabInput, UpdateLabInput } from "./types";
 
 export class LabService {
@@ -34,6 +36,23 @@ export class LabService {
       labs: data,
       pagination: buildPaginationMeta(total, page, limit),
     };
+  }
+
+  async getPublishedLabs(filter: LabFilter = {}) {
+    return this.listLabs(filter);
+  }
+
+  async getLabById(id: string): Promise<Lab> {
+    if (!id) {
+      throw new ValidationError("Lab ID is required.");
+    }
+
+    const lab = await this.repository.findById(id);
+    if (!lab) {
+      throw new NotFoundError("Lab experiment", id);
+    }
+
+    return lab;
   }
 
   async getLabBySlug(slug: string): Promise<Lab> {
@@ -67,6 +86,19 @@ export class LabService {
     }
 
     const created = await this.repository.create(input);
+
+    logger.info("audit:lab_created", {
+      labId: created.id,
+      slug: created.slug,
+      userId: profile.id,
+      role: profile.role,
+    });
+
+    await revalidateContent({
+      tags: [CACHE_TAGS.LABS, CACHE_TAGS.LAB(created.slug)],
+      paths: ["/labs", `/labs/${created.slug}`],
+    });
+
     return created;
   }
 
@@ -95,6 +127,46 @@ export class LabService {
     }
 
     const updated = await this.repository.update(id, input);
+
+    logger.info("audit:lab_updated", {
+      labId: updated.id,
+      slug: updated.slug,
+      userId: profile.id,
+      role: profile.role,
+    });
+
+    await revalidateContent({
+      tags: [CACHE_TAGS.LABS, CACHE_TAGS.LAB(existing.slug), CACHE_TAGS.LAB(updated.slug)],
+      paths: ["/labs", `/labs/${existing.slug}`, `/labs/${updated.slug}`],
+    });
+
+    return updated;
+  }
+
+  async archiveLab(id: string, profile: ProfileRecord): Promise<Lab> {
+    assertCanManageLabs(profile);
+
+    const existing = await this.repository.findById(id);
+    if (!existing) {
+      throw new NotFoundError("Lab experiment", id);
+    }
+
+    const updated = await this.repository.update(id, {
+      status: "archived",
+    });
+
+    logger.info("audit:lab_archived", {
+      labId: updated.id,
+      slug: updated.slug,
+      userId: profile.id,
+      role: profile.role,
+    });
+
+    await revalidateContent({
+      tags: [CACHE_TAGS.LABS, CACHE_TAGS.LAB(updated.slug)],
+      paths: ["/labs", `/labs/${updated.slug}`],
+    });
+
     return updated;
   }
 
@@ -107,5 +179,45 @@ export class LabService {
     }
 
     await this.repository.delete(id);
+
+    logger.info("audit:lab_deleted", {
+      labId: id,
+      slug: existing.slug,
+      userId: profile.id,
+      role: profile.role,
+    });
+
+    await revalidateContent({
+      tags: [CACHE_TAGS.LABS, CACHE_TAGS.LAB(existing.slug)],
+      paths: ["/labs", `/labs/${existing.slug}`],
+    });
+  }
+
+  async attachMedia(
+    labId: string,
+    rawInput: unknown,
+    profile: ProfileRecord
+  ): Promise<void> {
+    assertCanManageLabs(profile);
+
+    const parseResult = attachLabMediaSchema.safeParse(rawInput);
+    if (!parseResult.success) {
+      throw new ValidationError("Invalid lab media attachment", {
+        errors: parseResult.error.format(),
+      });
+    }
+
+    await this.repository.attachMedia(
+      labId,
+      parseResult.data.media_asset_id,
+      parseResult.data.role,
+      parseResult.data.order_index
+    );
+  }
+
+  async detachMedia(labId: string, mediaAssetId: string, profile: ProfileRecord): Promise<void> {
+    assertCanManageLabs(profile);
+    if (!mediaAssetId) throw new ValidationError("Media asset ID is required.");
+    await this.repository.detachMedia(labId, mediaAssetId);
   }
 }

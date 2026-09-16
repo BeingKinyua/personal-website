@@ -4,12 +4,13 @@ import { fileURLToPath } from "url";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { createBackendRouter } from "./src/lib/api/router.ts";
+import { ContentIndexer } from "./src/lib/ai/embeddings/indexer.ts";
 
 // Load environment variables
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Working directory resolution safe across ESM and CJS bundle targets
+const rootDir = process.cwd();
 
 async function startServer() {
   const app = express();
@@ -243,6 +244,15 @@ You should design a realistic cloud architect representation of the core topolog
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
+    // Prime Phase D Intelligence vector index in background
+    new ContentIndexer()
+      .indexAll()
+      .then((stats) => {
+        console.log(`[VictorOS Intelligence] Indexed ${stats.totalChunks} chunks across ${stats.projectsIndexed} projects, ${stats.articlesIndexed} articles, ${stats.labsIndexed} labs, and ${stats.conceptsIndexed} concepts.`);
+      })
+      .catch((err) => {
+        console.warn("[VictorOS Intelligence] Background indexing warning:", err);
+      });
   });
 }
 

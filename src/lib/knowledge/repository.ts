@@ -140,4 +140,136 @@ export class KnowledgeRepository {
       throw new DatabaseError("Database failure deleting concept", { id, error: String(err) });
     }
   }
+
+  async attachContentConcept(
+    contentType: "project" | "article" | "lab",
+    contentId: string,
+    conceptId: string
+  ): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("content_concepts")
+        .upsert(
+          {
+            content_type: contentType,
+            content_id: contentId,
+            concept_id: conceptId,
+          },
+          { onConflict: "content_type,content_id,concept_id" }
+        );
+
+      if (error) {
+        throw new DatabaseError(`Failed to link concept to ${contentType}: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure linking concept to content", { contentType, contentId, conceptId, error: String(err) });
+    }
+  }
+
+  async detachContentConcept(
+    contentType: "project" | "article" | "lab",
+    contentId: string,
+    conceptId: string
+  ): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("content_concepts")
+        .delete()
+        .eq("content_type", contentType)
+        .eq("content_id", contentId)
+        .eq("concept_id", conceptId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to unlink concept from ${contentType}: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure unlinking concept from content", { contentType, contentId, conceptId, error: String(err) });
+    }
+  }
+
+  async findConceptsForContent(contentType: "project" | "article" | "lab", contentId: string) {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from("content_concepts")
+        .select("concept_id, concepts (*)")
+        .eq("content_type", contentType)
+        .eq("content_id", contentId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to fetch concepts for ${contentType}: ${error.message}`);
+      }
+      return data || [];
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure fetching concepts for content", { contentType, contentId, error: String(err) });
+    }
+  }
+
+  async linkConcepts(
+    sourceConceptId: string,
+    targetConceptId: string,
+    relationshipType = "relates_to"
+  ): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("concept_relationships")
+        .upsert(
+          {
+            source_concept_id: sourceConceptId,
+            target_concept_id: targetConceptId,
+            relationship_type: relationshipType,
+          },
+          { onConflict: "source_concept_id,target_concept_id" }
+        );
+
+      if (error) {
+        throw new DatabaseError(`Failed to link concepts: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure linking concepts", { sourceConceptId, targetConceptId, error: String(err) });
+    }
+  }
+
+  async unlinkConcepts(sourceConceptId: string, targetConceptId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("concept_relationships")
+        .delete()
+        .eq("source_concept_id", sourceConceptId)
+        .eq("target_concept_id", targetConceptId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to unlink concepts: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure unlinking concepts", { sourceConceptId, targetConceptId, error: String(err) });
+    }
+  }
+
+  async findRelatedConcepts(conceptId: string) {
+    try {
+      const client = await this.getClient();
+      const { data, error } = await client
+        .from("concept_relationships")
+        .select("relationship_type, target_concept_id, concepts:target_concept_id (*)")
+        .eq("source_concept_id", conceptId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to fetch related concepts: ${error.message}`);
+      }
+      return data || [];
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure fetching related concepts", { conceptId, error: String(err) });
+    }
+  }
 }

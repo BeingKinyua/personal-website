@@ -143,4 +143,43 @@ export class LabRepository {
       throw new DatabaseError("Database failure deleting lab", { id, error: String(err) });
     }
   }
+
+  async attachMedia(labId: string, mediaAssetId: string, role = "preview", orderIndex = 0): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("lab_media")
+        .insert({
+          lab_id: labId,
+          media_asset_id: mediaAssetId,
+          role,
+          order_index: orderIndex,
+        });
+
+      if (error) {
+        throw new DatabaseError(`Failed to attach media to lab: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure attaching media to lab", { labId, mediaAssetId, error: String(err) });
+    }
+  }
+
+  async detachMedia(labId: string, mediaAssetId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("lab_media")
+        .delete()
+        .eq("lab_id", labId)
+        .eq("media_asset_id", mediaAssetId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to detach media from lab: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure detaching media from lab", { labId, mediaAssetId, error: String(err) });
+    }
+  }
 }

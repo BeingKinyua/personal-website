@@ -143,4 +143,111 @@ export class ArticleRepository {
       throw new DatabaseError("Database failure deleting article", { id, error: String(err) });
     }
   }
+
+  async attachTag(articleId: string, tagId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("article_tags")
+        .upsert({ article_id: articleId, tag_id: tagId }, { onConflict: "article_id,tag_id" });
+
+      if (error) {
+        throw new DatabaseError(`Failed to attach tag to article: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure attaching tag to article", { articleId, tagId, error: String(err) });
+    }
+  }
+
+  async detachTag(articleId: string, tagId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("article_tags")
+        .delete()
+        .eq("article_id", articleId)
+        .eq("tag_id", tagId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to detach tag from article: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure detaching tag from article", { articleId, tagId, error: String(err) });
+    }
+  }
+
+  async attachTechnology(articleId: string, technologyId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("article_technologies")
+        .upsert({ article_id: articleId, technology_id: technologyId }, { onConflict: "article_id,technology_id" });
+
+      if (error) {
+        throw new DatabaseError(`Failed to attach technology to article: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure attaching technology to article", { articleId, technologyId, error: String(err) });
+    }
+  }
+
+  async detachTechnology(articleId: string, technologyId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("article_technologies")
+        .delete()
+        .eq("article_id", articleId)
+        .eq("technology_id", technologyId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to detach technology from article: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure detaching technology from article", { articleId, technologyId, error: String(err) });
+    }
+  }
+
+  async attachMedia(articleId: string, mediaAssetId: string, role = "header", orderIndex = 0): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("article_media")
+        .insert({
+          article_id: articleId,
+          media_asset_id: mediaAssetId,
+          role,
+          order_index: orderIndex,
+        });
+
+      if (error) {
+        throw new DatabaseError(`Failed to attach media to article: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure attaching media to article", { articleId, mediaAssetId, error: String(err) });
+    }
+  }
+
+  async detachMedia(articleId: string, mediaAssetId: string): Promise<void> {
+    try {
+      const client = await this.getClient();
+      const { error } = await client
+        .from("article_media")
+        .delete()
+        .eq("article_id", articleId)
+        .eq("media_asset_id", mediaAssetId);
+
+      if (error) {
+        throw new DatabaseError(`Failed to detach media from article: ${error.message}`);
+      }
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure detaching media from article", { articleId, mediaAssetId, error: String(err) });
+    }
+  }
 }

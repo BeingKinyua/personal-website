@@ -53,3 +53,5 @@ export function getSupabaseAdminClient(): SupabaseClient<Database> {
 
   return adminClient;
 }
+
+export { getSupabaseAdminClient as createSupabaseAdminClient };

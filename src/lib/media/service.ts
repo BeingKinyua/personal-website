@@ -9,6 +9,9 @@ import { assertCanManageMedia, assertCanDelete } from "../auth/authorization";
 import type { ProfileRecord } from "../auth/authorization";
 import { ValidationError, NotFoundError } from "../shared/errors";
 import { parsePagination, buildPaginationMeta } from "../shared/utils";
+import { revalidateContent, CACHE_TAGS } from "../shared/revalidate";
+import { logger } from "../shared/logger";
+import { MEDIA_BUCKETS } from "../shared/constants";
 import type { MediaAsset, MediaFilter, UploadMediaInput } from "./types";
 
 export class MediaService {
@@ -61,6 +64,73 @@ export class MediaService {
 
     const input: UploadMediaInput = parseResult.data;
     const created = await this.repository.create(input);
+
+    logger.info("audit:media_registered", {
+      mediaId: created.id,
+      bucket: created.bucket,
+      filePath: created.file_path,
+      userId: profile.id,
+      role: profile.role,
+    });
+
+    await revalidateContent({
+      tags: [CACHE_TAGS.MEDIA],
+    });
+
+    return created;
+  }
+
+  /**
+   * Directly uploads a binary file to Supabase Storage bucket and creates the media asset record.
+   */
+  async uploadFile(
+    params: {
+      filename: string;
+      mimeType: string;
+      sizeBytes: number;
+      buffer: Buffer | Uint8Array | Blob;
+      bucket?: string;
+      altText?: string | null;
+    },
+    profile: ProfileRecord
+  ): Promise<MediaAsset> {
+    assertCanManageMedia(profile);
+
+    const bucket = params.bucket || MEDIA_BUCKETS.SYSTEM;
+    const sanitizedFilename = params.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const uniqueStoragePath = `${Date.now()}_${sanitizedFilename}`;
+
+    // Upload to Supabase Storage
+    const { publicUrl } = await this.repository.uploadStorageObject(
+      bucket,
+      uniqueStoragePath,
+      params.buffer,
+      params.mimeType
+    );
+
+    // Register record in database
+    const created = await this.repository.create({
+      filename: params.filename,
+      filePath: uniqueStoragePath,
+      mimeType: params.mimeType,
+      sizeBytes: params.sizeBytes,
+      publicUrl,
+      bucket,
+      altText: params.altText,
+    });
+
+    logger.info("audit:media_uploaded", {
+      mediaId: created.id,
+      bucket,
+      filePath: uniqueStoragePath,
+      userId: profile.id,
+      role: profile.role,
+    });
+
+    await revalidateContent({
+      tags: [CACHE_TAGS.MEDIA],
+    });
+
     return created;
   }
 
@@ -72,6 +142,30 @@ export class MediaService {
       throw new NotFoundError("Media asset", id);
     }
 
+    // Attempt storage deletion if bucket & file_path exist
+    if (existing.bucket && existing.file_path) {
+      try {
+        await this.repository.deleteStorageObject(existing.bucket, existing.file_path);
+      } catch (storageErr) {
+        logger.warn("Failed to delete storage file, proceeding with db record deletion", {
+          error: String(storageErr),
+          bucket: existing.bucket,
+          filePath: existing.file_path,
+        });
+      }
+    }
+
     await this.repository.delete(id);
+
+    logger.info("audit:media_deleted", {
+      mediaId: id,
+      filePath: existing.file_path,
+      userId: profile.id,
+      role: profile.role,
+    });
+
+    await revalidateContent({
+      tags: [CACHE_TAGS.MEDIA],
+    });
   }
 }

@@ -43,7 +43,7 @@ export function createApiError(error: unknown): ApiErrorResponse {
 export async function executeApiHandler<T>(
   res: { status: (code: number) => { json: (body: unknown) => void } },
   handler: () => Promise<T>,
-  statusCode = HTTP_STATUS.OK
+  statusCode: number = HTTP_STATUS.OK
 ): Promise<void> {
   try {
     const result = await handler();

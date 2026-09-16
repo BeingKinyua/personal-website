@@ -14,7 +14,7 @@ export type Json =
 
 export type UserRole = "admin" | "editor" | "viewer";
 export type ContentStatus = "draft" | "published" | "archived";
-export type LabStatus = "active" | "experimental" | "archived";
+export type LabStatus = "active" | "experimental" | "archived" | "exploring" | "building" | "paused" | "completed";
 
 export interface Database {
   public: {
@@ -432,6 +432,219 @@ export interface Database {
         Relationships: [];
       };
 
+      project_tags: {
+        Row: {
+          project_id: string;
+          tag_id: string;
+          created_at: string;
+        };
+        Insert: {
+          project_id: string;
+          tag_id: string;
+          created_at?: string;
+        };
+        Update: {
+          project_id?: string;
+          tag_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      project_technologies: {
+        Row: {
+          project_id: string;
+          technology_id: string;
+          created_at: string;
+        };
+        Insert: {
+          project_id: string;
+          technology_id: string;
+          created_at?: string;
+        };
+        Update: {
+          project_id?: string;
+          technology_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      project_media: {
+        Row: {
+          id: string;
+          project_id: string;
+          media_asset_id: string;
+          role: string;
+          order_index: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          media_asset_id: string;
+          role?: string;
+          order_index?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          media_asset_id?: string;
+          role?: string;
+          order_index?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      article_tags: {
+        Row: {
+          article_id: string;
+          tag_id: string;
+          created_at: string;
+        };
+        Insert: {
+          article_id: string;
+          tag_id: string;
+          created_at?: string;
+        };
+        Update: {
+          article_id?: string;
+          tag_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      article_technologies: {
+        Row: {
+          article_id: string;
+          technology_id: string;
+          created_at: string;
+        };
+        Insert: {
+          article_id: string;
+          technology_id: string;
+          created_at?: string;
+        };
+        Update: {
+          article_id?: string;
+          technology_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      article_media: {
+        Row: {
+          id: string;
+          article_id: string;
+          media_asset_id: string;
+          role: string;
+          order_index: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          article_id: string;
+          media_asset_id: string;
+          role?: string;
+          order_index?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          article_id?: string;
+          media_asset_id?: string;
+          role?: string;
+          order_index?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      lab_media: {
+        Row: {
+          id: string;
+          lab_id: string;
+          media_asset_id: string;
+          role: string;
+          order_index: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          lab_id: string;
+          media_asset_id: string;
+          role?: string;
+          order_index?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          lab_id?: string;
+          media_asset_id?: string;
+          role?: string;
+          order_index?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      content_concepts: {
+        Row: {
+          id: string;
+          concept_id: string;
+          content_type: string;
+          content_id: string;
+          order_index: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          concept_id: string;
+          content_type: string;
+          content_id: string;
+          order_index?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          concept_id?: string;
+          content_type?: string;
+          content_id?: string;
+          order_index?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      concept_relationships: {
+        Row: {
+          id: string;
+          source_concept_id: string;
+          target_concept_id: string;
+          relationship_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          source_concept_id: string;
+          target_concept_id: string;
+          relationship_type: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          source_concept_id?: string;
+          target_concept_id?: string;
+          relationship_type?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
       github_repositories: {
         Row: {
           id: string;
@@ -532,6 +745,31 @@ export interface Database {
           chunk_index?: number;
           content?: string;
           token_count?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      embeddings: {
+        Row: {
+          id: string;
+          chunk_id: string;
+          embedding: number[];
+          model: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          chunk_id: string;
+          embedding: number[];
+          model?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          chunk_id?: string;
+          embedding?: number[];
+          model?: string;
           created_at?: string;
         };
         Relationships: [];

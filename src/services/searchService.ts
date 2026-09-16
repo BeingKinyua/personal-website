@@ -176,3 +176,62 @@ export function searchVictorOS(query: string): SearchResultItem[] {
 
   return results;
 }
+
+/**
+ * Queries the real VictorOS backend hybrid search API (/api/v1/search)
+ * with graceful fallback to client-side search.
+ */
+export async function searchVictorOSHybrid(query: string): Promise<SearchResultItem[]> {
+  const localResults = searchVictorOS(query);
+  if (!query.trim()) return localResults;
+
+  try {
+    const res = await fetch(`/api/v1/search?q=${encodeURIComponent(query.trim())}&limit=12`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+        const backendItems: SearchResultItem[] = json.data.map((item: any) => {
+          let moduleType: "WORK" | "JOURNAL" | "LAB" | "KNOWLEDGE" = "WORK";
+          let actionType: "navigate" | "open_project" | "open_article" = "open_project";
+
+          if (item.sourceType === "article") {
+            moduleType = "JOURNAL";
+            actionType = "open_article";
+          } else if (item.sourceType === "lab") {
+            moduleType = "LAB";
+            actionType = "navigate";
+          } else if (item.sourceType === "concept") {
+            moduleType = "KNOWLEDGE";
+            actionType = "navigate";
+          }
+
+          return {
+            id: `backend-${item.sourceType}-${item.sourceId}`,
+            module: moduleType,
+            title: item.title,
+            subtitle: item.excerpt || `${item.matchType.toUpperCase()} match (${Math.round(item.score * 100)}%)`,
+            action: {
+              type: actionType,
+              target: item.slug || item.sourceId,
+            },
+          };
+        });
+
+        // Always include Doom delegation action
+        backendItems.push({
+          id: `doom-query-${query}`,
+          module: "DOOM",
+          title: `Ask Dr. Doom: "${query}"`,
+          subtitle: "Delegate semantic query to VictorOS intelligence",
+          action: { type: "ask_doom", target: query },
+        });
+
+        return backendItems;
+      }
+    }
+  } catch {
+    // Fall back to local search
+  }
+
+  return localResults;
+}

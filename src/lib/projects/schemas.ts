@@ -8,7 +8,9 @@ import { CONTENT_STATUS } from "../shared/constants";
 export const projectFilterSchema = z.object({
   status: z.enum([CONTENT_STATUS.DRAFT, CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.ARCHIVED]).optional(),
   category: z.string().optional(),
-  featured: z.boolean().optional(),
+  technology: z.string().optional(),
+  tag: z.string().optional(),
+  featured: z.coerce.boolean().optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(100).optional().default(20),
@@ -39,3 +41,32 @@ export const createProjectSchema = z.object({
 });
 
 export const updateProjectSchema = createProjectSchema.partial();
+
+export const createSectionSchema = z.object({
+  title: z.string().min(1, "Section title is required").max(200),
+  content: z.string().min(1, "Section content is required"),
+  order_index: z.number().int().optional().default(0),
+});
+
+export const updateSectionSchema = createSectionSchema.partial();
+
+export const reorderSectionsSchema = z.array(
+  z.object({
+    id: z.string().uuid("Section ID must be a valid UUID"),
+    order_index: z.number().int().min(0),
+  })
+);
+
+export const attachMediaSchema = z.object({
+  media_asset_id: z.string().uuid("Media asset ID must be a valid UUID"),
+  role: z.string().max(50).default("gallery"),
+  order_index: z.number().int().optional().default(0),
+});
+
+export const attachTagSchema = z.object({
+  tag_id: z.string().uuid("Tag ID must be a valid UUID"),
+});
+
+export const attachTechnologySchema = z.object({
+  technology_id: z.string().uuid("Technology ID must be a valid UUID"),
+});

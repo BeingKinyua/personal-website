@@ -26,3 +26,15 @@ export const createConceptSchema = z.object({
 });
 
 export const updateConceptSchema = createConceptSchema.partial();
+
+export const attachContentConceptSchema = z.object({
+  content_type: z.enum(["project", "article", "lab"]),
+  content_id: z.string().uuid("Content ID must be a valid UUID"),
+  concept_id: z.string().uuid("Concept ID must be a valid UUID"),
+});
+
+export const conceptRelationshipSchema = z.object({
+  source_concept_id: z.string().uuid("Source concept ID must be a valid UUID"),
+  target_concept_id: z.string().uuid("Target concept ID must be a valid UUID"),
+  relationship_type: z.string().min(2).max(50).default("relates_to"),
+});

@@ -29,10 +29,17 @@ export function getPublicEnv(): {
   supabaseAnonKey: string;
   appUrl: string;
 } {
-  const url =
+  let url =
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
     "https://placeholder-project.supabase.co";
+
+  url = url.trim();
+  if (url && !url.includes(".") && !url.includes("/")) {
+    url = `https://${url}.supabase.co`;
+  } else if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
+  }
 
   const anonKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
@@ -86,8 +93,10 @@ export function assertSupabaseConfigured(requireAdmin = false): void {
   if (
     !env.supabaseUrl ||
     env.supabaseUrl.includes("placeholder-project") ||
+    env.supabaseUrl.includes("your-project-id") ||
     !env.supabaseAnonKey ||
-    env.supabaseAnonKey.includes("placeholder-anon-key")
+    env.supabaseAnonKey.includes("placeholder-anon-key") ||
+    env.supabaseAnonKey.includes("your-supabase-anon-key")
   ) {
     throw new AppError(
       "Supabase connection is not yet configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
@@ -98,12 +107,24 @@ export function assertSupabaseConfigured(requireAdmin = false): void {
 
   if (requireAdmin) {
     const serverEnv = getServerEnv();
-    if (!serverEnv.supabaseServiceRoleKey) {
+    if (!serverEnv.supabaseServiceRoleKey || serverEnv.supabaseServiceRoleKey.includes("your-supabase") || serverEnv.supabaseServiceRoleKey.includes("placeholder")) {
       throw new AppError(
         "Supabase Admin operations require SUPABASE_SERVICE_ROLE_KEY to be configured in server environment.",
         "SERVICE_ROLE_NOT_CONFIGURED",
         500
       );
     }
+  }
+}
+
+/**
+ * Checks whether Supabase is configured with non-placeholder credentials
+ */
+export function isSupabaseConfigured(requireAdmin = false): boolean {
+  try {
+    assertSupabaseConfigured(requireAdmin);
+    return true;
+  } catch {
+    return false;
   }
 }

@@ -11,18 +11,43 @@ export type ProjectUpdate = Database["public"]["Tables"]["projects"]["Update"];
 
 export type SectionRow = Database["public"]["Tables"]["project_sections"]["Row"];
 export type SectionInsert = Database["public"]["Tables"]["project_sections"]["Insert"];
+export type SectionUpdate = Database["public"]["Tables"]["project_sections"]["Update"];
+
+export type ProjectMediaRow = Database["public"]["Tables"]["project_media"]["Row"];
 
 export interface Project extends ProjectRow {
   sections?: SectionRow[];
+  tags?: { id: string; name: string; slug: string }[];
+  technologies_rel?: { id: string; name: string; slug: string; icon?: string | null; color?: string | null }[];
+  media?: (ProjectMediaRow & { asset?: Database["public"]["Tables"]["media_assets"]["Row"] })[];
 }
 
 export interface ProjectFilter {
   status?: ContentStatus;
   category?: string;
+  technology?: string;
+  tag?: string;
   featured?: boolean;
   search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface CreateSectionInput {
+  title: string;
+  content: string;
+  order_index?: number;
+}
+
+export interface UpdateSectionInput {
+  title?: string;
+  content?: string;
+  order_index?: number;
+}
+
+export interface ReorderSectionItem {
+  id: string;
+  order_index: number;
 }
 
 export interface CreateProjectInput {

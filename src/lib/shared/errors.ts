@@ -56,6 +56,8 @@ export class AuthorizationError extends AppError {
   }
 }
 
+export { AuthorizationError as ForbiddenError };
+
 /**
  * 400 Validation Error (e.g. invalid Zod input or malformed payload)
  */
@@ -83,6 +85,17 @@ export class ConflictError extends AppError {
     super(message, "CONFLICT", HTTP_STATUS.CONFLICT, details);
   }
 }
+
+/**
+ * 429 Too Many Requests Error (Rate limiting)
+ */
+export class TooManyRequestsError extends AppError {
+  constructor(message = "Rate limit exceeded. Please slow down and try again later.", details?: ErrorDetails) {
+    super(message, "RATE_LIMIT_EXCEEDED", HTTP_STATUS.TOO_MANY_REQUESTS, details);
+  }
+}
+
+export { TooManyRequestsError as RateLimitError };
 
 /**
  * 500 Database Error (Never leaks raw SQL or credentials to public consumers)

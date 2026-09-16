@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, Command, ArrowRight, CornerDownLeft, Sparkles, FolderKanban, BookOpen, FlaskConical, Network, Compass, X } from "lucide-react";
-import { searchVictorOS, SearchResultItem } from "../../services/searchService";
+import { searchVictorOS, searchVictorOSHybrid, SearchResultItem } from "../../services/searchService";
 import { useScrollLock } from "../../hooks/useScrollLock";
 import Lenis from "lenis";
 
@@ -62,6 +62,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
+    let cancelled = false;
     const rawResults = searchVictorOS(query);
     if (activeFilter === "ALL") {
       setResults(rawResults);
@@ -69,6 +70,25 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
       setResults(rawResults.filter((r) => r.module === activeFilter || r.module === "DOOM"));
     }
     setSelectedIndex(0);
+
+    if (query.trim()) {
+      const timer = setTimeout(() => {
+        searchVictorOSHybrid(query).then((hybridResults) => {
+          if (!cancelled && hybridResults.length > 0) {
+            if (activeFilter === "ALL") {
+              setResults(hybridResults);
+            } else {
+              setResults(hybridResults.filter((r) => r.module === activeFilter || r.module === "DOOM"));
+            }
+          }
+        });
+      }, 150);
+
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
+    }
   }, [query, activeFilter]);
 
   const handleSelect = (item: SearchResultItem) => {

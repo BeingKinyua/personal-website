@@ -12,6 +12,48 @@ import { EXPERIMENTS } from "../data/experiments";
  */
 export async function askDoom(request: DoomRequest): Promise<DoomResponse> {
   const query = request.message.trim().toLowerCase();
+
+  // Try real backend Dr. Doom RAG intelligence service
+  try {
+    const sessionId = sessionStorage.getItem("victoros_session_id") || `sess_${Date.now()}`;
+    sessionStorage.setItem("victoros_session_id", sessionId);
+
+    const res = await fetch("/api/v1/doom", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: request.message,
+        sessionId,
+        context: request.context,
+      }),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.data && json.data.message) {
+        return {
+          message: json.data.message,
+          actions: json.data.actions?.map((a: any) => ({
+            label: a.label,
+            type: a.action,
+            target: a.target || "work",
+          })),
+          references: json.data.references?.map((r: any) => ({
+            type: r.type,
+            id: r.id,
+            title: r.title,
+            slug: r.slug || r.id,
+            badge: r.badge,
+          })),
+          timestamp: new Date().toLocaleTimeString(),
+        };
+      }
+    }
+  } catch {
+    // Graceful fallback to client-side heuristic engine
+  }
   
   // Simulate minimal edge response latency
   await new Promise((resolve) => setTimeout(resolve, 380));
