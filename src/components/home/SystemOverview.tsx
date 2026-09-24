@@ -68,7 +68,7 @@ export const SystemOverview: React.FC<SystemOverviewProps> = ({ onNavigate, onOp
           {/* System Badge */}
           <BlurReveal trigger="load" delay={0.1} duration={0.6}>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-xs font-mono text-zinc-400 mb-6 backdrop-blur-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
               <span>TOVU // DIGITAL OPERATING ENVIRONMENT</span>
             </div>
           </BlurReveal>
