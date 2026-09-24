@@ -189,7 +189,7 @@ export const JournalReader: React.FC<JournalReaderProps> = ({
           onTogglePlay={audio.togglePlay}
           mode={audio.mode}
           title={audio.mode === "ambient" ? audio.currentTrack.title : (audio.narration?.title || article.title)}
-          artistOrType={audio.mode === "ambient" ? audio.currentTrack.artist : "VictorOS Voice"}
+          artistOrType={audio.mode === "ambient" ? audio.currentTrack.artist : "Tovu Voice"}
           onExpand={audio.openPanel}
           onDismiss={audio.dismissPlayer}
         />
@@ -371,7 +371,7 @@ export const JournalReader: React.FC<JournalReaderProps> = ({
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-mono text-zinc-300 hover:text-white transition-all cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>RETURN TO VICTOR.OS JOURNAL</span>
+              <span>RETURN TO TOVU JOURNAL</span>
             </button>
           </div>
         </footer>

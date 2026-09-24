@@ -5,16 +5,16 @@ import { KNOWLEDGE_NODES } from "../data/knowledge";
 
 export interface SearchResultItem {
   id: string;
-  module: "WORK" | "JOURNAL" | "LAB" | "KNOWLEDGE" | "NAVIGATION" | "DOOM";
+  module: "WORK" | "JOURNAL" | "LAB" | "KNOWLEDGE" | "NAVIGATION" | "TOVU" | "DOOM";
   title: string;
   subtitle: string;
   action: {
-    type: "navigate" | "open_project" | "open_article" | "ask_doom";
+    type: "navigate" | "open_project" | "open_article" | "ask_tovu" | "ask_doom";
     target: string;
   };
 }
 
-export function searchVictorOS(query: string): SearchResultItem[] {
+export function searchTovu(query: string): SearchResultItem[] {
   const q = query.toLowerCase().trim();
   const results: SearchResultItem[] = [];
 
@@ -26,50 +26,50 @@ export function searchVictorOS(query: string): SearchResultItem[] {
         module: "NAVIGATION",
         title: "Work Module",
         subtitle: "Cinematic systems showcase & case studies",
-        action: { type: "navigate", target: "work" }
+        action: { type: "navigate", target: "work" },
       },
       {
         id: "proj-nyayo",
         module: "WORK",
         title: "NYAYO",
         subtitle: "A discipleship platform designed around knowing Christ",
-        action: { type: "open_project", target: "nyayo" }
+        action: { type: "open_project", target: "nyayo" },
       },
       {
         id: "proj-football",
         module: "WORK",
         title: "Football Intelligence",
         subtitle: "Computer vision analysis & recruit intelligence",
-        action: { type: "open_project", target: "football-intelligence" }
+        action: { type: "open_project", target: "football-intelligence" },
       },
       {
         id: "art-ai-eng",
         module: "JOURNAL",
         title: "AI Engineering: Systems That Actually Solve Problems",
         subtitle: "Evaluation harnesses and deterministic boundaries",
-        action: { type: "open_article", target: "ai-engineering-production" }
+        action: { type: "open_article", target: "ai-engineering-production" },
       },
       {
         id: "exp-07",
         module: "LAB",
         title: "EXPERIMENT 07 — Football Intelligence",
         subtitle: "Monocular pitch reconstruction & kinematics",
-        action: { type: "navigate", target: "lab" }
+        action: { type: "navigate", target: "lab" },
       },
       {
         id: "nav-knowledge",
         module: "KNOWLEDGE",
         title: "Knowledge Lattice",
         subtitle: "Explore 16 interconnected technical concepts",
-        action: { type: "navigate", target: "knowledge" }
+        action: { type: "navigate", target: "knowledge" },
       },
       {
-        id: "doom-ai",
-        module: "DOOM",
-        title: "Ask Dr. Doom: AI Systems Inquiry",
+        id: "tovu-ai",
+        module: "TOVU",
+        title: "Ask Tovu: AI Systems Inquiry",
         subtitle: "Query the system intelligence layer",
-        action: { type: "ask_doom", target: "Show me Victor's AI projects" }
-      }
+        action: { type: "ask_tovu", target: "Show me the AI projects" },
+      },
     ];
   }
 
@@ -78,15 +78,16 @@ export function searchVictorOS(query: string): SearchResultItem[] {
     if (
       p.title.toLowerCase().includes(q) ||
       p.subtitle.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q) ||
+      p.system.toLowerCase().includes(q) ||
+      p.details.toLowerCase().includes(q) ||
       p.technologies.some((t) => t.toLowerCase().includes(q))
     ) {
       results.push({
-        id: `work-${p.id}`,
+        id: `proj-${p.id}`,
         module: "WORK",
-        title: `${p.number} — ${p.title}`,
-        subtitle: `${p.category} · ${p.technologies.slice(0, 3).join(", ")}`,
-        action: { type: "open_project", target: p.slug }
+        title: p.title,
+        subtitle: `${p.category} — ${p.subtitle}`,
+        action: { type: "open_project", target: p.slug },
       });
     }
   }
@@ -99,11 +100,11 @@ export function searchVictorOS(query: string): SearchResultItem[] {
       a.tags.some((t) => t.toLowerCase().includes(q))
     ) {
       results.push({
-        id: `journal-${a.id}`,
+        id: `art-${a.id}`,
         module: "JOURNAL",
         title: a.title,
-        subtitle: `${a.category} · ${a.readTime}`,
-        action: { type: "open_article", target: a.slug }
+        subtitle: `Article — ${a.readTime}`,
+        action: { type: "open_article", target: a.slug },
       });
     }
   }
@@ -113,19 +114,20 @@ export function searchVictorOS(query: string): SearchResultItem[] {
     if (
       e.title.toLowerCase().includes(q) ||
       e.hypothesis.toLowerCase().includes(q) ||
+      e.currentState.toLowerCase().includes(q) ||
       e.tags.some((t) => t.toLowerCase().includes(q))
     ) {
       results.push({
-        id: `lab-${e.id}`,
+        id: `exp-${e.id}`,
         module: "LAB",
-        title: `${e.number}: ${e.title}`,
-        subtitle: `Status: ${e.status} · ${e.category}`,
-        action: { type: "navigate", target: "lab" }
+        title: `${e.number} — ${e.title}`,
+        subtitle: `Experiment (${e.status}) — ${e.tags.join(", ")}`,
+        action: { type: "navigate", target: "lab" },
       });
     }
   }
 
-  // Search Knowledge Nodes
+  // Search Knowledge Lattice
   for (const k of KNOWLEDGE_NODES) {
     if (
       k.label.toLowerCase().includes(q) ||
@@ -133,56 +135,58 @@ export function searchVictorOS(query: string): SearchResultItem[] {
       k.category.toLowerCase().includes(q)
     ) {
       results.push({
-        id: `knowledge-${k.id}`,
+        id: `know-${k.id}`,
         module: "KNOWLEDGE",
         title: k.label,
-        subtitle: `${k.category} (${k.type}) · ${k.level || "Concept"}`,
-        action: { type: "navigate", target: "knowledge" }
+        subtitle: `Concept (${k.category}) — ${k.level}`,
+        action: { type: "navigate", target: "knowledge" },
       });
     }
   }
 
-  // Navigation commands
-  const navItems = [
-    { title: "Home / System Overview", subtitle: "Telemetry and living system dashboard", target: "home" },
-    { title: "Work Module", subtitle: "Cinematic horizontal systems showcase", target: "work" },
-    { title: "Journal Module", subtitle: "Bento grid of engineering thinking and essays", target: "journal" },
-    { title: "Laboratory Module", subtitle: "Hypothesis validation and unfinished ideas", target: "lab" },
-    { title: "Knowledge Module", subtitle: "Concept lattice and learning graph", target: "knowledge" },
-    { title: "About Victor", subtitle: "Philosophy, systems creed, and journey timeline", target: "about" },
-    { title: "Contact Module", subtitle: "Direct engineering collaboration channels", target: "contact" }
+  // Search Core Navigation
+  const navTargets = [
+    { title: "Work Module", subtitle: "Engineering showcase & case studies", target: "work" },
+    { title: "Journal Module", subtitle: "Essays & architectural writings", target: "journal" },
+    { title: "Lab Module", subtitle: "Active experiments & prototypes", target: "lab" },
+    { title: "Knowledge Module", subtitle: "Interconnected conceptual lattice", target: "knowledge" },
+    { title: "About Section", subtitle: "Bio, creed, timeline & philosophy", target: "about" },
+    { title: "Contact Section", subtitle: "Direct channels & collaboration", target: "contact" },
   ];
 
-  for (const nav of navItems) {
+  for (const nav of navTargets) {
     if (nav.title.toLowerCase().includes(q) || nav.subtitle.toLowerCase().includes(q)) {
       results.push({
         id: `nav-${nav.target}`,
         module: "NAVIGATION",
         title: nav.title,
         subtitle: nav.subtitle,
-        action: { type: "navigate", target: nav.target }
+        action: { type: "navigate", target: nav.target },
       });
     }
   }
 
-  // Always offer asking Dr. Doom if query exists
+  // Always offer asking Tovu if query exists
   results.push({
-    id: `doom-query-${q}`,
-    module: "DOOM",
-    title: `Ask Dr. Doom: "${query}"`,
-    subtitle: "Delegate semantic query to VictorOS intelligence",
-    action: { type: "ask_doom", target: query }
+    id: `tovu-query-${q}`,
+    module: "TOVU",
+    title: `Ask Tovu: "${query}"`,
+    subtitle: "Delegate semantic query to Tovu intelligence",
+    action: { type: "ask_tovu", target: query },
   });
 
   return results;
 }
 
+// Backwards-compatible alias
+export const searchVictorOS = searchTovu;
+
 /**
- * Queries the real VictorOS backend hybrid search API (/api/v1/search)
+ * Queries the real Tovu backend hybrid search API (/api/v1/search)
  * with graceful fallback to client-side search.
  */
-export async function searchVictorOSHybrid(query: string): Promise<SearchResultItem[]> {
-  const localResults = searchVictorOS(query);
+export async function searchTovuHybrid(query: string): Promise<SearchResultItem[]> {
+  const localResults = searchTovu(query);
   if (!query.trim()) return localResults;
 
   try {
@@ -217,13 +221,13 @@ export async function searchVictorOSHybrid(query: string): Promise<SearchResultI
           };
         });
 
-        // Always include Doom delegation action
+        // Always include Tovu delegation action
         backendItems.push({
-          id: `doom-query-${query}`,
-          module: "DOOM",
-          title: `Ask Dr. Doom: "${query}"`,
-          subtitle: "Delegate semantic query to VictorOS intelligence",
-          action: { type: "ask_doom", target: query },
+          id: `tovu-query-${query}`,
+          module: "TOVU",
+          title: `Ask Tovu: "${query}"`,
+          subtitle: "Delegate semantic query to Tovu intelligence",
+          action: { type: "ask_tovu", target: query },
         });
 
         return backendItems;
@@ -235,3 +239,6 @@ export async function searchVictorOSHybrid(query: string): Promise<SearchResultI
 
   return localResults;
 }
+
+// Backwards-compatible alias
+export const searchVictorOSHybrid = searchTovuHybrid;

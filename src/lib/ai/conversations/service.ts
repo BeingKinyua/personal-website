@@ -66,7 +66,7 @@ export class ConversationService {
       id,
       sessionId: input.sessionId,
       userId: input.userId || null,
-      title: input.title || "VictorOS Intelligence Query",
+      title: input.title || "Tovu Intelligence Query",
       createdAt: now,
       updatedAt: now,
     };

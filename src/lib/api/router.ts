@@ -11,7 +11,7 @@ import { LabService } from "../labs/service";
 import { KnowledgeService } from "../knowledge/service";
 import { MediaService } from "../media/service";
 import { HybridSearchService } from "../search/hybrid";
-import { DoomService } from "../ai/doom/service";
+import { TovuService, DoomService } from "../ai/tovu/service";
 import { ContentIndexer } from "../ai/embeddings/indexer";
 import { ConversationService } from "../ai/conversations/service";
 import { checkRateLimit } from "../shared/rateLimit";
@@ -491,7 +491,8 @@ export function createBackendRouter(): Router {
   // Phase D: Intelligence Layer Endpoints
   // ==========================================
   const hybridSearchService = new HybridSearchService();
-  const doomService = new DoomService();
+  const tovuService = new TovuService();
+  const doomService = tovuService;
   const contentIndexer = new ContentIndexer();
   const conversationService = new ConversationService();
 
@@ -521,8 +522,8 @@ export function createBackendRouter(): Router {
     });
   });
 
-  // Dr. Doom AI Assistant Endpoint
-  router.post("/doom", (req, res) => {
+  // Tovu Intelligence Assistant Endpoint (Canonical)
+  const handleTovuQuery = (req: any, res: any) => {
     executeApiHandler(res, async () => {
       // Rate limiting: 30 requests per minute per IP / session
       const clientIp = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "anonymous";
@@ -530,19 +531,26 @@ export function createBackendRouter(): Router {
       const rateCheck = checkRateLimit(sessionId, { windowMs: 60_000, maxRequests: 30 });
 
       if (!rateCheck.allowed) {
-        throw new TooManyRequestsError("Dr. Doom query limit reached. Please wait before asking further questions.", {
+        throw new TooManyRequestsError("Tovu query limit reached. Please wait before asking further questions.", {
           resetInMs: rateCheck.resetInMs,
         });
       }
 
       const user = await getCurrentUser();
-      return await doomService.ask({
+      return await tovuService.ask({
         ...req.body,
         userId: user?.id,
         sessionId,
       });
     });
-  });
+  };
+
+  router.post("/tovu", handleTovuQuery);
+  router.post("/tovu/ask", handleTovuQuery);
+
+  // Deprecated compatibility wrapper for legacy /doom endpoint
+  router.post("/doom", handleTovuQuery);
+  router.post("/doom/ask", handleTovuQuery);
 
   // Conversation retrieval with session boundary enforcement
   router.get("/conversations/:id", (req, res) => {

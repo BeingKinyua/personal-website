@@ -19,13 +19,14 @@ const DEFAULT_SETTINGS: ReaderSettings = {
   motion: "full",
 };
 
-const STORAGE_KEY = "victoros_reader_settings";
+const STORAGE_KEY = "tovu_reader_settings";
+const LEGACY_STORAGE_KEY = "victoros_reader_settings";
 
 export function useReaderSettings() {
   const [settings, setSettings] = useState<ReaderSettings>(() => {
     if (typeof window === "undefined") return DEFAULT_SETTINGS;
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
       if (stored) {
         return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
       }

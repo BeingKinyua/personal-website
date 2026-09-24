@@ -65,11 +65,11 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
     }
   }, [isOpen, scrollerRef]);
 
-  // Subtle background VictorOS depth recede effect
+  // Subtle background Tovu depth recede effect
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const mainEl = document.getElementById("victoros-main-content");
-    const navEl = document.getElementById("victoros-floating-nav");
+    const mainEl = document.getElementById("tovu-main-content") || document.getElementById("victoros-main-content");
+    const navEl = document.getElementById("tovu-floating-nav") || document.getElementById("victoros-floating-nav");
 
     if (isOpen) {
       if (mainEl) {
@@ -114,7 +114,7 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
 
   return (
     <div
-      id="victoros-immersive-overlay"
+      id="tovu-immersive-overlay"
       data-lenis-prevent="true"
       role="dialog"
       aria-modal="true"
@@ -122,7 +122,7 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
     >
       {/* 
         Independent Reader Scroll Container
-        overscroll-behavior: contain prevents any wheel or touch momentum from chaining to VictorOS beneath
+        overscroll-behavior: contain prevents any wheel or touch momentum from chaining to Tovu beneath
       */}
       <div
         ref={scrollerRef}

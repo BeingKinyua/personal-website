@@ -130,13 +130,13 @@ export class GeminiAIProvider implements AIModelProvider {
 
 /**
  * High-fidelity fallback AI provider for development and offline testing.
- * Synthesizes grounded, theatrical Dr. Doom responses from retrieved prompt context.
+ * Synthesizes grounded, architectural Tovu responses from retrieved prompt context.
  */
-export class DeterministicDoomFallbackProvider implements AIModelProvider {
-  readonly name = "doom-grounded-fallback";
+export class DeterministicTovuFallbackProvider implements AIModelProvider {
+  readonly name = "tovu-grounded-fallback";
 
   async generateText(prompt: string): Promise<string> {
-    return `[DR. DOOM]: Intelligence queries must pass through structured validation. Received query payload: ${prompt.slice(0, 100)}...`;
+    return `[TOVU]: Intelligence queries must pass through structured validation. Received query payload: ${prompt.slice(0, 100)}...`;
   }
 
   async generateStructured<T>(
@@ -148,7 +148,7 @@ export class DeterministicDoomFallbackProvider implements AIModelProvider {
     const queryMatch = prompt.match(/USER QUERY:\s*([^\n]+)/i);
     const userQuery = queryMatch ? queryMatch[1].trim() : "Unknown query";
 
-    let message = "DR. DOOM online. I have evaluated Victor's architectural index regarding your inquiry.";
+    let message = "Tovu online. I have evaluated the architectural index regarding your inquiry.";
     const actions: Array<{ label: string; action: string; target?: string }> = [];
     const references: Array<{ type: string; id: string; title: string; slug?: string; badge?: string }> = [];
 
@@ -157,7 +157,7 @@ export class DeterministicDoomFallbackProvider implements AIModelProvider {
       const sourceMatches = [...prompt.matchAll(/\[EVIDENCE\s+\d+\]\s+\[(.*?)\]\s+(.*?)\s+\(URL:\s*(.*?)\)/g)];
       
       if (sourceMatches.length > 0) {
-        message = `I have examined Victor's system records regarding "${userQuery}". ${sourceMatches.length} primary verified sources substantiate this architecture:\n\n`;
+        message = `I have examined the system records regarding "${userQuery}". ${sourceMatches.length} primary verified sources substantiate this architecture:\n\n`;
         
         for (const sm of sourceMatches.slice(0, 3)) {
           const type = sm[1].toLowerCase();
@@ -165,7 +165,7 @@ export class DeterministicDoomFallbackProvider implements AIModelProvider {
           const url = sm[3];
           const slug = url.split("/").pop()?.replace("#", "") || "";
 
-          message += `• **${title}** (${type.toUpperCase()}): Documented in Victor's primary registry.\n`;
+          message += `• **${title}** (${type.toUpperCase()}): Documented in the primary registry.\n`;
 
           references.push({
             type: (["project", "article", "lab", "concept"].includes(type) ? type : "project") as any,
@@ -187,7 +187,7 @@ export class DeterministicDoomFallbackProvider implements AIModelProvider {
         message += `\nEvery component operates with deterministic verification and deliberate architectural boundaries.`;
       }
     } else {
-      message = `I have searched Victor's architecture index for "${userQuery}". While no direct operational documents matched with high confidence, Victor's primary work spans distributed systems, machine learning engineering, and full-stack software architecture.`;
+      message = `I have searched the architecture index for "${userQuery}". While no direct operational documents matched with high confidence, Victor's primary work spans distributed systems, machine learning engineering, and full-stack software architecture.`;
       actions.push(
         { label: "Inspect AI & Systems Work", action: "navigate", target: "work" },
         { label: "Browse Technical Journal", action: "navigate", target: "journal" },
@@ -209,6 +209,9 @@ export class DeterministicDoomFallbackProvider implements AIModelProvider {
     return schema.parse(payload);
   }
 }
+
+// Backwards-compatible alias
+export const DeterministicDoomFallbackProvider = DeterministicTovuFallbackProvider;
 
 let activeAIProvider: AIModelProvider | null = null;
 
@@ -232,7 +235,7 @@ export function getAIProvider(): AIModelProvider {
     }
   }
 
-  activeAIProvider = new DeterministicDoomFallbackProvider();
-  logger.info("Initialized Deterministic Doom Fallback Provider");
+  activeAIProvider = new DeterministicTovuFallbackProvider();
+  logger.info("Initialized Deterministic Tovu Fallback Provider");
   return activeAIProvider;
 }

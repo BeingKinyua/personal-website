@@ -12,9 +12,9 @@ export const OSFooter: React.FC<OSFooterProps> = ({ onScrollToTop, onNavigate })
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-3">
           <span className="w-2 h-2 rounded-full bg-blue-500" />
-          <span className="text-white font-semibold tracking-widest">VICTOR.OS</span>
+          <span className="text-white font-semibold tracking-widest">TOVU</span>
           <span className="text-zinc-600">|</span>
-          <span className="text-zinc-400">PERSONAL DIGITAL OPERATING SYSTEM</span>
+          <span className="text-zinc-400">CURATED SYSTEMS &amp; KNOWLEDGE</span>
         </div>
 
         <div className="flex items-center gap-6 text-[11px]">

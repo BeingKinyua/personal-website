@@ -6,7 +6,7 @@ export const TIMELINE_MILESTONES: TimelineMilestone[] = [
     quarter: "Q3 - PRESENT",
     role: "Founding Systems & AI Engineer",
     organization: "Independent R&D / Stealth",
-    description: "Building VictorOS, high-throughput semantic vector retrieval systems in Rust, and edge-first machine learning architectures for amateur sports scout telemetry.",
+    description: "Building Tovu, high-throughput semantic vector retrieval systems in Rust, and edge-first machine learning architectures for amateur sports scout telemetry.",
     impactHighlight: "Constructed sub-200ms edge AI pipelines and monocular computer vision tracking models.",
     skills: ["Rust", "PyTorch", "Next.js", "Distributed Systems", "YOLOv9"]
   },

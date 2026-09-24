@@ -17,7 +17,7 @@ export const SystemEntry: React.FC<SystemEntryProps> = ({ onEnter }) => {
     { label: "Loading Journal Knowledge", status: "✓" },
     { label: "Loading Laboratory Experiments", status: "✓" },
     { label: "Loading Concept Lattice", status: "✓" },
-    { label: "Initializing Dr. Doom Layer", status: "✓" },
+    { label: "Initializing Tovu Intelligence", status: "✓" },
     { label: "SYSTEM READY", status: "ONLINE" }
   ];
 
@@ -61,14 +61,14 @@ export const SystemEntry: React.FC<SystemEntryProps> = ({ onEnter }) => {
         <BlurReveal trigger="load" delay={0.1} duration={0.6}>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-xs font-mono tracking-widest text-zinc-400 mb-8 backdrop-blur-md">
             <Cpu className="w-3.5 h-3.5 text-blue-400" />
-            <span>VICTOR.OS // KERNEL v2.4.0</span>
+            <span>TOVU // KERNEL v2.4.0</span>
           </div>
         </BlurReveal>
 
         {/* Title with SystemText decode */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-light tracking-tight text-white mb-6 font-mono">
           <SystemText variant="decode" trigger="load" duration={0.5}>
-            VICTOR.OS
+            TOVU
           </SystemText>
         </h1>
 
@@ -115,7 +115,7 @@ export const SystemEntry: React.FC<SystemEntryProps> = ({ onEnter }) => {
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10 text-zinc-400">
               <span className="flex items-center gap-1.5">
                 <Terminal className="w-3.5 h-3.5 text-blue-400" />
-                INITIALIZING VICTOR.OS
+                INITIALIZING TOVU
               </span>
               <span className="text-[10px] text-zinc-500">{bootStep + 1}/{bootLogs.length}</span>
             </div>

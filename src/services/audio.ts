@@ -14,7 +14,7 @@ export const CURATED_AMBIENT_TRACKS: AmbientTrack[] = [
   {
     id: "night-drive",
     title: "Night Drive",
-    artist: "Curated for VictorOS",
+    artist: "Curated for Tovu",
     genre: "Low-Key Synthwave",
     durationSeconds: 248,
     bpm: 86,
@@ -23,7 +23,7 @@ export const CURATED_AMBIENT_TRACKS: AmbientTrack[] = [
   {
     id: "lsm-engine-drift",
     title: "Storage Physics Drift",
-    artist: "VictorOS Sound Lab",
+    artist: "Tovu Sound Lab",
     genre: "Minimal Ambient",
     durationSeconds: 310,
     bpm: 64,

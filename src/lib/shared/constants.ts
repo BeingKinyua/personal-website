@@ -4,7 +4,7 @@
  */
 
 export const SYSTEM = {
-  NAME: "VictorOS",
+  NAME: "Tovu",
   VERSION: "3.2.0",
   DEFAULT_PAGE_SIZE: 20,
   MAX_PAGE_SIZE: 100,

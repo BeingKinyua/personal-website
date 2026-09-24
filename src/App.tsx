@@ -10,8 +10,8 @@ import { OSStatus } from "./components/shell/OSStatus";
 import { CommandCenter } from "./components/shell/CommandCenter";
 import { OSFooter } from "./components/shell/OSFooter";
 
-// Dr. Doom AI Intelligence
-import { DoomPanel } from "./components/doom/DoomPanel";
+// Tovu Intelligence
+import { TovuPanel } from "./components/tovu/TovuPanel";
 
 // System Modules
 import { SystemOverview } from "./components/home/SystemOverview";
@@ -34,7 +34,10 @@ gsap.registerPlugin(ScrollTrigger);
 export default function App() {
   // System Entry Boot state
   const [hasEnteredSystem, setHasEnteredSystem] = useState<boolean>(() => {
-    return sessionStorage.getItem("victoros_boot_completed") === "true";
+    return (
+      sessionStorage.getItem("tovu_boot_completed") === "true" ||
+      sessionStorage.getItem("victoros_boot_completed") === "true"
+    );
   });
 
   // Navigation and active section
@@ -47,9 +50,9 @@ export default function App() {
   // Command Center state
   const { isOpen: isCmdOpen, open: openCmd, close: closeCmd } = useCommandCenter();
 
-  // Dr. Doom intelligence panel state
-  const [isDoomOpen, setIsDoomOpen] = useState<boolean>(false);
-  const [doomInitialPrompt, setDoomInitialPrompt] = useState<string>("");
+  // Tovu Intelligence panel state
+  const [isTovuOpen, setIsTovuOpen] = useState<boolean>(false);
+  const [tovuInitialPrompt, setTovuInitialPrompt] = useState<string>("");
 
   const lenisRef = useRef<Lenis | null>(null);
 
@@ -123,6 +126,7 @@ export default function App() {
           node instanceof HTMLElement &&
           (node.hasAttribute("data-lenis-prevent") ||
             Boolean(node.closest("[data-lenis-prevent]")) ||
+            Boolean(node.closest("#tovu-immersive-overlay")) ||
             Boolean(node.closest("#victoros-immersive-overlay")) ||
             Boolean(node.closest("#reader-scroll-viewport")))
         );
@@ -165,7 +169,7 @@ export default function App() {
   }, [hasEnteredSystem]);
 
   const handleEnterSystem = () => {
-    sessionStorage.setItem("victoros_boot_completed", "true");
+    sessionStorage.setItem("tovu_boot_completed", "true");
     setHasEnteredSystem(true);
   };
 
@@ -181,9 +185,9 @@ export default function App() {
     }
   };
 
-  const handleAskDoomWithPrompt = (prompt: string) => {
-    setDoomInitialPrompt(prompt);
-    setIsDoomOpen(true);
+  const handleAskTovuWithPrompt = (prompt: string) => {
+    setTovuInitialPrompt(prompt);
+    setIsTovuOpen(true);
   };
 
   return (
@@ -193,7 +197,7 @@ export default function App() {
         <SystemEntry onEnter={handleEnterSystem} />
       )}
 
-      {/* State B: Full VictorOS Environment */}
+      {/* State B: Full Tovu Environment */}
       {hasEnteredSystem && (
         <>
           {/* Floating Navigation Pill */}
@@ -201,24 +205,32 @@ export default function App() {
             activeSection={activeSection}
             onNavigate={scrollToSection}
             onOpenCommandCenter={openCmd}
+            onOpenTovu={() => {
+              setTovuInitialPrompt("");
+              setIsTovuOpen(true);
+            }}
             onOpenDoom={() => {
-              setDoomInitialPrompt("");
-              setIsDoomOpen(true);
+              setTovuInitialPrompt("");
+              setIsTovuOpen(true);
             }}
             lenisRef={lenisRef}
           />
 
           {/* System Telemetry Status Bar */}
-          // <OSStatus />
+          {/* <OSStatus /> */}
 
           {/* Main Operating Environment Content */}
-          <main id="victoros-main-content">
+          <main id="tovu-main-content">
             {/* 1. Home / System Overview */}
             <SystemOverview
               onNavigate={scrollToSection}
+              onOpenTovu={() => {
+                setTovuInitialPrompt("");
+                setIsTovuOpen(true);
+              }}
               onOpenDoom={() => {
-                setDoomInitialPrompt("");
-                setIsDoomOpen(true);
+                setTovuInitialPrompt("");
+                setIsTovuOpen(true);
               }}
             />
 
@@ -273,15 +285,16 @@ export default function App() {
             onOpenArticle={(slug) => {
               handleOpenArticle(slug);
             }}
-            onAskDoom={handleAskDoomWithPrompt}
+            onAskTovu={handleAskTovuWithPrompt}
+            onAskDoom={handleAskTovuWithPrompt}
             lenisRef={lenisRef}
           />
 
-          {/* Dr. Doom System Intelligence Assistant */}
-          <DoomPanel
-            isOpen={isDoomOpen}
-            initialPrompt={doomInitialPrompt}
-            onClose={() => setIsDoomOpen(false)}
+          {/* Tovu Intelligence Assistant */}
+          <TovuPanel
+            isOpen={isTovuOpen}
+            initialPrompt={tovuInitialPrompt}
+            onClose={() => setIsTovuOpen(false)}
             onNavigate={scrollToSection}
             onOpenProject={(slug) => {
               handleOpenProject(slug);

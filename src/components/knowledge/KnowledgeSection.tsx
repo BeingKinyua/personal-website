@@ -169,7 +169,7 @@ export const KnowledgeSection: React.FC<KnowledgeSectionProps> = ({
             {/* Direct Cross-Links: Related Systems / Articles */}
             <div className="space-y-3 pt-4 border-t border-white/10">
               <span className="text-xs font-mono uppercase text-zinc-500 tracking-wider block">
-                Direct Cross-Links in VictorOS
+                Direct Cross-Links in Tovu
               </span>
 
               {selectedNode.relatedProjects && selectedNode.relatedProjects.length > 0 && (

@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Command, ArrowRight, CornerDownLeft, Sparkles, FolderKanban, BookOpen, FlaskConical, Network, Compass, X } from "lucide-react";
-import { searchVictorOS, searchVictorOSHybrid, SearchResultItem } from "../../services/searchService";
+import {
+  Search,
+  X,
+  Command,
+  ArrowRight,
+  FolderKanban,
+  BookOpen,
+  FlaskConical,
+  Network,
+  Sparkles,
+  Compass,
+  CornerDownLeft
+} from "lucide-react";
+import { searchTovu, searchTovuHybrid, SearchResultItem } from "../../services/searchService";
 import { useScrollLock } from "../../hooks/useScrollLock";
 import Lenis from "lenis";
 
@@ -10,7 +22,8 @@ interface CommandCenterProps {
   onNavigate: (sectionId: string) => void;
   onOpenProject: (slug: string) => void;
   onOpenArticle: (slug: string) => void;
-  onAskDoom: (prompt: string) => void;
+  onAskTovu?: (initialPrompt?: string) => void;
+  onAskDoom?: (initialPrompt?: string) => void;
   lenisRef?: React.RefObject<Lenis | null>;
 }
 
@@ -20,6 +33,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
   onNavigate,
   onOpenProject,
   onOpenArticle,
+  onAskTovu,
   onAskDoom,
   lenisRef,
 }) => {
@@ -28,6 +42,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
     lenisRef,
   });
 
+  const handleAsk = onAskTovu || onAskDoom || (() => {});
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -61,24 +76,25 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
     }
   }, [isOpen]);
 
+  // Hybrid search execution with debounce
   useEffect(() => {
     let cancelled = false;
-    const rawResults = searchVictorOS(query);
+    const rawResults = searchTovu(query);
     if (activeFilter === "ALL") {
       setResults(rawResults);
     } else {
-      setResults(rawResults.filter((r) => r.module === activeFilter || r.module === "DOOM"));
+      setResults(rawResults.filter((r) => r.module === activeFilter || r.module === "TOVU" || r.module === "DOOM"));
     }
     setSelectedIndex(0);
 
     if (query.trim()) {
       const timer = setTimeout(() => {
-        searchVictorOSHybrid(query).then((hybridResults) => {
+        searchTovuHybrid(query).then((hybridResults) => {
           if (!cancelled && hybridResults.length > 0) {
             if (activeFilter === "ALL") {
               setResults(hybridResults);
             } else {
-              setResults(hybridResults.filter((r) => r.module === activeFilter || r.module === "DOOM"));
+              setResults(hybridResults.filter((r) => r.module === activeFilter || r.module === "TOVU" || r.module === "DOOM"));
             }
           }
         });
@@ -99,8 +115,8 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
       onOpenProject(item.action.target);
     } else if (item.action.type === "open_article") {
       onOpenArticle(item.action.target);
-    } else if (item.action.type === "ask_doom") {
-      onAskDoom(item.action.target);
+    } else if (item.action.type === "ask_tovu" || item.action.type === "ask_doom") {
+      handleAsk(item.action.target);
     }
   };
 
@@ -134,14 +150,15 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
         return <Network className="w-3.5 h-3.5 text-indigo-400" />;
       case "NAVIGATION":
         return <Compass className="w-3.5 h-3.5 text-zinc-400" />;
+      case "TOVU":
       case "DOOM":
-        return <Sparkles className="w-3.5 h-3.5 text-purple-400" />;
+        return <Sparkles className="w-3.5 h-3.5 text-blue-400" />;
       default:
         return <Command className="w-3.5 h-3.5 text-zinc-400" />;
     }
   };
 
-  const filterTabs = ["ALL", "WORK", "JOURNAL", "LAB", "KNOWLEDGE", "DOOM"];
+  const filterTabs = ["ALL", "WORK", "JOURNAL", "LAB", "KNOWLEDGE", "TOVU"];
 
   return (
     <div
@@ -164,7 +181,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             ref={inputRef}
             id="command-center-input"
             type="text"
-            placeholder="Search VictorOS systems, essays, experiments, or ask Doom..."
+            placeholder="Search Tovu systems, essays, experiments, or ask Tovu..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full bg-transparent text-sm sm:text-base font-normal text-white placeholder-zinc-500 focus:outline-none tracking-wide"
@@ -214,7 +231,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
         >
           {results.length === 0 ? (
             <div className="py-12 text-center text-zinc-500 font-mono text-xs">
-              No matching records located in VictorOS. Try another search or ask Dr. Doom.
+              No matching records located in Tovu. Try another search or ask Tovu.
             </div>
           ) : (
             results.map((item, index) => {

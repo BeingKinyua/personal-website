@@ -12,10 +12,12 @@ import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 interface SystemOverviewProps {
   onNavigate: (sectionId: string) => void;
-  onOpenDoom: () => void;
+  onOpenTovu?: () => void;
+  onOpenDoom?: () => void;
 }
 
-export const SystemOverview: React.FC<SystemOverviewProps> = ({ onNavigate, onOpenDoom }) => {
+export const SystemOverview: React.FC<SystemOverviewProps> = ({ onNavigate, onOpenTovu, onOpenDoom }) => {
+  const handleOpenTovu = onOpenTovu || onOpenDoom || (() => {});
   const [selectedCurrently, setSelectedCurrently] = useState<CurrentlyItem | null>(null);
 
   const modules = [
@@ -67,7 +69,7 @@ export const SystemOverview: React.FC<SystemOverviewProps> = ({ onNavigate, onOp
           <BlurReveal trigger="load" delay={0.1} duration={0.6}>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-xs font-mono text-zinc-400 mb-6 backdrop-blur-sm">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>VICTOR.OS // DIGITAL OPERATING ENVIRONMENT</span>
+              <span>TOVU // DIGITAL OPERATING ENVIRONMENT</span>
             </div>
           </BlurReveal>
 
@@ -103,12 +105,12 @@ export const SystemOverview: React.FC<SystemOverviewProps> = ({ onNavigate, onOp
               </button>
 
               <button
-                id="hero-ask-doom-btn"
-                onClick={onOpenDoom}
+                id="hero-ask-tovu-btn"
+                onClick={handleOpenTovu}
                 className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-200 font-mono text-xs sm:text-sm tracking-wide transition-all duration-200 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] active:scale-95 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-blue-400 animate-pulse" />
-                <span>Ask Doom</span>
+                <span>Ask Tovu</span>
               </button>
             </div>
           </BlurReveal>

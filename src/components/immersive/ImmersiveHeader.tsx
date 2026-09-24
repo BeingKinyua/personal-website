@@ -49,7 +49,7 @@ export const ImmersiveHeader: React.FC<ImmersiveHeaderProps> = ({
           onClick={onClose}
           id="reader-back-btn"
           className="group flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-mono text-zinc-300 hover:text-white border border-white/10 transition-all cursor-pointer"
-          aria-label="Return to VictorOS"
+          aria-label="Return to Tovu"
         >
           <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
           <span className="font-semibold hidden sm:inline">BACK</span>

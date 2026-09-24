@@ -27,7 +27,7 @@ export const ContactSection: React.FC = () => {
     setIsSent(true);
     setTimeout(() => {
       window.location.href = `mailto:${emailAddress}?subject=Transmission from ${encodeURIComponent(
-        senderName || "VictorOS Visitor"
+        senderName || "Tovu Visitor"
       )}&body=${encodeURIComponent(message)}`;
     }, 600);
   };

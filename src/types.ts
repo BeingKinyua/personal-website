@@ -2,6 +2,7 @@ export * from "./types/project";
 export * from "./types/article";
 export * from "./types/experiment";
 export * from "./types/knowledge";
+export * from "./types/tovu";
 export * from "./types/doom";
 export * from "./types/common";
 

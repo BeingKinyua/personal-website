@@ -25,7 +25,7 @@ export interface NarrationVoice {
 }
 
 export const NARRATION_VOICES: NarrationVoice[] = [
-  { id: "victor-neural", name: "VictorOS Neural Architect", tagline: "Calm, technical, deliberate", accent: "East African / Neutral" },
+  { id: "victor-neural", name: "Tovu Neural Architect", tagline: "Calm, technical, deliberate", accent: "East African / Neutral" },
   { id: "studio-analytical", name: "Deep Systems Voice", tagline: "Paced, academic, precise", accent: "Modern Studio" },
   { id: "serene-contemplative", name: "Contemplative Sage", tagline: "Low timbre, reverent, spacious", accent: "Serene" },
 ];

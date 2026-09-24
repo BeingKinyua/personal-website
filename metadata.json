@@ -1,6 +1,6 @@
 {
-  "name": "VICTOR.OS",
-  "description": "A personal digital operating system for a software engineer, AI builder, data thinker, and technology enthusiast. I build systems. I explore ideas. I solve problems.",
+  "name": "Tovu",
+  "description": "The personal operating system, digital second mind, and engineering portfolio of Victor Kinyua. Curated systems, research, machine learning, and knowledge architecture.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

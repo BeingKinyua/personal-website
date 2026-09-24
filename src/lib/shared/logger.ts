@@ -135,6 +135,6 @@ class BackendLogger {
 }
 
 export const logger = new BackendLogger(
-  { system: "VictorOS" },
+  { system: "Tovu" },
   (process.env.LOG_LEVEL as LogLevel) || (process.env.NODE_ENV === "production" ? "info" : "debug")
 );

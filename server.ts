@@ -38,8 +38,10 @@ async function startServer() {
     return ai;
   }
 
-  // VictorOS Phase A: Mount Backend Foundation API Router
-  app.use("/api/v1", createBackendRouter());
+  // Tovu Backend Foundation API Router (Canonical /api and /api/v1)
+  const backendRouter = createBackendRouter();
+  app.use("/api/v1", backendRouter);
+  app.use("/api", backendRouter);
   app.get("/api/health", (req, res) => {
     res.redirect(307, "/api/v1/health");
   });

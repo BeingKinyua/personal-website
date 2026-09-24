@@ -22,7 +22,8 @@ interface OSNavigationProps {
   activeSection: string;
   onNavigate: (sectionId: string) => void;
   onOpenCommandCenter: () => void;
-  onOpenDoom: () => void;
+  onOpenTovu?: () => void;
+  onOpenDoom?: () => void;
   lenisRef?: React.RefObject<Lenis | null>;
 }
 
@@ -30,9 +31,11 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
   activeSection,
   onNavigate,
   onOpenCommandCenter,
+  onOpenTovu,
   onOpenDoom,
   lenisRef
 }) => {
+  const handleOpenTovu = onOpenTovu || onOpenDoom || (() => {});
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -136,7 +139,7 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
       >
         <nav
           id="os-main-nav"
-          aria-label="VictorOS Main Navigation"
+          aria-label="Tovu Main Navigation"
           className={`w-full flex items-center justify-between md:justify-start gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-[#0b0d10]/90 backdrop-blur-xl shadow-2xl transition-all duration-300 ${
             isScrolled ? "scale-[0.98] shadow-black/70 bg-[#090a0d]/95" : ""
           } ${isMobileMenuOpen ? "border-blue-500/30" : ""}`}
@@ -146,11 +149,11 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
             id="nav-brand-btn"
             onClick={() => handleSelectSection("home")}
             className="flex items-center gap-2 pl-1 sm:pl-1.5 pr-2 py-1 text-xs font-mono font-medium text-white hover:text-blue-400 transition-colors cursor-pointer group shrink-0"
-            title="VictorOS System Home"
+            title="Tovu System Home"
           >
             <span className="w-2 h-2 rounded-full bg-blue-500 group-hover:shadow-[0_0_8px_#3b82f6] transition-all animate-pulse" />
             <SystemText variant="tracking" duration={0.8} className="font-semibold tracking-wider text-xs sm:text-sm">
-              VICTOR.OS
+              TOVU
             </SystemText>
 
             {/* Mobile Active Section Tag */}
@@ -190,7 +193,7 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
             <div className="w-px h-3.5 bg-white/10 mx-1.5" />
           </div>
 
-          {/* Desktop Direct Actions (⌘ K + ASK DOOM) */}
+          {/* Desktop Direct Actions (⌘ K + TOVU) */}
           <div className="hidden md:flex items-center gap-1.5">
             {/* Command Center (⌘ K) */}
             <button
@@ -203,29 +206,29 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
               <span className="text-[10px] text-zinc-500 font-medium group-hover:text-zinc-300">K</span>
             </button>
 
-            {/* Ask Doom AI Trigger */}
+            {/* Ask Tovu AI Trigger */}
             <button
-              id="nav-ask-doom-btn"
-              onClick={onOpenDoom}
+              id="nav-ask-tovu-btn"
+              onClick={handleOpenTovu}
               className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium text-blue-200 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 transition-all cursor-pointer hover:shadow-[0_0_12px_rgba(59,130,246,0.3)] active:scale-95"
-              title="Consult Dr. Doom AI System Assistant"
+              title="Consult Tovu Intelligence"
             >
               <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
-              <span>ASK DOOM</span>
+              <span>TOVU</span>
             </button>
           </div>
 
-          {/* Mobile Right Controls: Doom AI + ⌘ Command + Menu Toggle */}
+          {/* Mobile Right Controls: Tovu + ⌘ Command + Menu Toggle */}
           <div className="flex md:hidden items-center gap-1 sm:gap-1.5">
-            {/* Mobile Ask Doom AI Button */}
+            {/* Mobile Ask Tovu AI Button */}
             <button
-              id="mobile-nav-doom-btn"
-              onClick={onOpenDoom}
+              id="mobile-nav-tovu-btn"
+              onClick={handleOpenTovu}
               className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium text-blue-300 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 active:scale-95 transition-all"
-              title="Consult Dr. Doom AI"
+              title="Consult Tovu Intelligence"
             >
               <Sparkles className="w-3 h-3 text-blue-400 animate-pulse" />
-              <span>DOOM</span>
+              <span>TOVU</span>
             </button>
 
             {/* Mobile Command Center Button */}
@@ -365,12 +368,12 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
             <button
               onClick={() => {
                 setIsMobileMenuOpen(false);
-                onOpenDoom();
+                handleOpenTovu();
               }}
               className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-blue-500/30 bg-blue-500/15 hover:bg-blue-500/25 text-xs font-mono text-blue-200 transition-all cursor-pointer shadow-[0_0_10px_rgba(59,130,246,0.2)]"
             >
               <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
-              <span>DR. DOOM</span>
+              <span>TOVU</span>
             </button>
           </div>
 
@@ -378,7 +381,7 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
           <div className="pt-1 flex items-center justify-between text-[10px] font-mono text-zinc-500 px-1">
             <div className="flex items-center gap-1.5">
               <Activity className="w-3 h-3 text-blue-400" />
-              <span>VICTOR.OS KERNEL v3.2</span>
+              <span>TOVU KERNEL v3.2</span>
             </div>
             <span>TOUCH DISPATCH 60FPS</span>
           </div>

@@ -533,7 +533,7 @@ export const ProjectReader: React.FC<ProjectReaderProps> = ({
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-mono text-zinc-300 hover:text-white transition-all cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>RETURN TO VICTOR.OS WORK</span>
+              <span>RETURN TO TOVU WORK</span>
             </button>
           </div>
         </footer>
