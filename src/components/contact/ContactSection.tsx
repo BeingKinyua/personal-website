@@ -41,12 +41,7 @@ export const ContactSection: React.FC = () => {
 
       {/* Header */}
       <div className="mb-14 relative z-10">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
-            CONTACT // DIRECT CHANNELS
-          </span>
-        </div>
+        
         <TextReveal
           as="h2"
           trigger="scroll"

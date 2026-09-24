@@ -19,12 +19,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ onNavigateToContact 
 
       {/* Section Header */}
       <div className="mb-16 relative z-10">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-blue-400" />
-          <span className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
-            ABOUT // IDENTITY &amp; CREED
-          </span>
-        </div>
+        
         <TextReveal
           as="h2"
           trigger="scroll"
