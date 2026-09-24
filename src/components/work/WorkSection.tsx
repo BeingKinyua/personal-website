@@ -132,12 +132,6 @@ export const WorkSection: React.FC<WorkSectionProps> = ({
       {/* Top Section Header */}
       <div className="px-4 sm:px-6 max-w-7xl mx-auto w-full pt-1 sm:pt-2 pb-2 z-10 flex items-center justify-between gap-4 shrink-0">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            <span className="text-[10px] sm:text-xs font-mono tracking-widest text-zinc-400 uppercase">
-              WORK // SYSTEM SHOWCASE
-            </span>
-          </div>
           <TextReveal
             as="h2"
             trigger="scroll"
