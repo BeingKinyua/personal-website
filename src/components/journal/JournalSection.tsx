@@ -37,7 +37,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
             duration={0.9}
             className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight"
           >
-            Engineering Thinking
+            Thinking Out Loud
           </TextReveal>
         </div>
         <WordReveal
@@ -45,7 +45,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
           delay={0.2}
           className="text-sm text-zinc-400 max-w-md font-normal"
         >
-          Essays on deterministic AI boundaries, storage engine physics, and the virtue of strict architectural constraints.
+          Essays on thoughts that come to mind.
         </WordReveal>
       </div>
 
