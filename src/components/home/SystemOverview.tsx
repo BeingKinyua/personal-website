@@ -81,16 +81,8 @@ export const SystemOverview: React.FC<SystemOverviewProps> = ({ onNavigate, onOp
             as="h1"
             className="text-4xl sm:text-6xl font-light tracking-tight text-white mb-6 font-mono leading-[1.1]"
           >
-            {"A personal operating system for\nbuilding, learning, and exploring."}
+            {"Learning, \nExploring, \nBuilding."}
           </TextReveal>
-
-          <WordReveal
-            trigger="load"
-            delay={0.4}
-            className="text-base sm:text-lg text-zinc-400 max-w-xl font-normal leading-relaxed mb-8"
-          >
-            Engineered by Victor Kinyua. Combining distributed systems reliability, compound AI pipelines, and restrained, high-contrast human interfaces.
-          </WordReveal>
 
           {/* Primary CTA Buttons */}
           <BlurReveal trigger="load" delay={0.5} duration={0.7}>
