@@ -23,7 +23,7 @@ export const JournalSection: React.FC<JournalSectionProps> = ({
       </ParallaxBackgroundText>
 
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12 relative z-10">
+      <div className="flex flex-col sm:flex-col sm:items-start mb-12 relative z-10">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2 rounded-full bg-amber-400" />
