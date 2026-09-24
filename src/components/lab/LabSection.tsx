@@ -32,14 +32,9 @@ export const LabSection: React.FC = () => {
       </ParallaxBackgroundText>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 relative z-10">
+      <div className="flex flex-col sm:flex-col sm:items-start gap-4 mb-10 relative z-10">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
-              LAB // EXPERIMENTAL SANDBOX
-            </span>
-          </div>
+          
           <TextReveal
             as="h2"
             trigger="scroll"
