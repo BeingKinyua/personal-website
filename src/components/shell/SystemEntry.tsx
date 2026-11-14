@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Terminal, ArrowRight, CheckCircle2, ShieldCheck, Cpu } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { TextReveal } from "../motion/TextReveal";
 import { SystemText } from "../motion/SystemText";
 import { BlurReveal } from "../motion/BlurReveal";
@@ -13,12 +13,11 @@ export const SystemEntry: React.FC<SystemEntryProps> = ({ onEnter }) => {
   const [isBooting, setIsBooting] = useState<boolean>(false);
 
   const bootLogs = [
-    { label: "Loading Work Systems", status: "✓" },
-    { label: "Loading Journal Knowledge", status: "✓" },
-    { label: "Loading Laboratory Experiments", status: "✓" },
-    { label: "Loading Concept Lattice", status: "✓" },
-    { label: "Initializing Tovu Intelligence", status: "✓" },
-    { label: "SYSTEM READY", status: "ONLINE" }
+    { label: "Work & Case Studies", status: "Ready" },
+    { label: "Editorial Journal", status: "Ready" },
+    { label: "Research Lab", status: "Ready" },
+    { label: "Knowledge Lattice", status: "Ready" },
+    { label: "Tovu Intelligence", status: "Online" },
   ];
 
   const handleStartBoot = () => {
@@ -36,11 +35,11 @@ export const SystemEntry: React.FC<SystemEntryProps> = ({ onEnter }) => {
           clearInterval(interval);
           setTimeout(() => {
             onEnter();
-          }, 450);
+          }, 380);
           return prev;
         }
       });
-    }, 180);
+    }, 150);
 
     return () => clearInterval(interval);
   }, [isBooting, onEnter, bootLogs.length]);
@@ -48,114 +47,92 @@ export const SystemEntry: React.FC<SystemEntryProps> = ({ onEnter }) => {
   return (
     <div
       id="system-entry-screen"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#070809] text-[#f1f2f4] px-6 select-none overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--tovu-bg-canvas)] text-[var(--tovu-text-primary)] px-6 select-none overflow-hidden"
     >
-      {/* Subtle architectural background grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none opacity-40" />
+      <div className="blueprint-overlay absolute inset-0 pointer-events-none opacity-45" />
 
-      {/* Radial depth glow */}
-      <div className="absolute w-[600px] h-[600px] rounded-full bg-[#3b82f6]/5 blur-[140px] pointer-events-none" />
-
-      <div className="relative z-10 w-full max-w-xl mx-auto flex flex-col items-center text-center">
-        {/* Monogram Badge */}
-        <BlurReveal trigger="load" delay={0.1} duration={0.6}>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-xs font-mono tracking-widest text-zinc-400 mb-8 backdrop-blur-md">
-            <Cpu className="w-3.5 h-3.5 text-blue-400" />
-            <span>TOVU // KERNEL v2.4.0</span>
-          </div>
+      <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center text-center">
+        <BlurReveal trigger="load" delay={0.05} duration={0.5}>
+          <p className="text-[13px] font-mono tracking-widest uppercase text-[var(--tovu-accent)] mb-6">
+            Victor Kinyua · Digital Portfolio
+          </p>
         </BlurReveal>
 
-        {/* Title with SystemText decode */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-light tracking-tight text-white mb-6 font-mono">
-          <SystemText variant="decode" trigger="load" duration={0.5}>
-            TOVU
+        <h1 className="text-5xl sm:text-7xl font-display font-bold tracking-tight text-[var(--tovu-text-primary)] mb-6">
+          <SystemText variant="decode" trigger="load" duration={0.45}>
+            Tovu
           </SystemText>
         </h1>
 
-        {/* Creed / Core Declaration using Masked Line Reveal */}
         <TextReveal
           trigger="load"
-          duration={0.9}
-          stagger={0.12}
-          delay={0.2}
-          className="space-y-1.5 text-lg sm:text-xl font-normal text-zinc-200 mb-8 max-w-md"
+          duration={0.85}
+          stagger={0.1}
+          delay={0.15}
+          className="space-y-1.5 text-xl sm:text-2xl font-normal text-[var(--tovu-text-secondary)] mb-6 max-w-lg leading-relaxed"
         >
           {"I build systems.\nI explore ideas.\nI solve problems."}
         </TextReveal>
 
-        {/* Discipline Specifier */}
-        <BlurReveal trigger="load" delay={0.4} duration={0.7}>
-          <p className="text-xs sm:text-sm font-mono tracking-wider text-zinc-500 uppercase mb-12">
-            Software Engineer · AI Builder · Data &amp; Product Thinker
+        <BlurReveal trigger="load" delay={0.35} duration={0.6}>
+          <p className="text-[14px] font-mono text-[var(--tovu-text-muted)] mb-12">
+            Software Engineering · Applied AI · Product Architecture
           </p>
         </BlurReveal>
 
-        {/* Action / Boot Sequence */}
         {!isBooting ? (
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <button
               id="enter-system-btn"
+              type="button"
               onClick={handleStartBoot}
-              className="group relative inline-flex items-center gap-3 px-8 py-3.5 rounded-full bg-white text-black font-medium text-sm tracking-wide transition-all duration-300 hover:bg-zinc-200 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] active:scale-95 cursor-pointer"
+              className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-full bg-[var(--tovu-text-primary)] text-[var(--tovu-bg-canvas)] font-medium text-[15px] transition-all duration-200 hover:opacity-90 active:scale-95 cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
             >
-              <span>ENTER SYSTEM</span>
+              <span>Enter Tovu</span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
             </button>
 
             <button
               id="instant-enter-btn"
+              type="button"
               onClick={onEnter}
-              className="text-xs font-mono text-zinc-500 hover:text-zinc-300 px-4 py-2 transition-colors cursor-pointer"
+              className="text-sm font-mono text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)] px-4 py-2.5 transition-colors cursor-pointer"
             >
-              [ Skip Boot ]
+              Skip intro
             </button>
           </div>
         ) : (
-          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-zinc-950/80 p-5 text-left font-mono text-xs backdrop-blur-lg shadow-2xl">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10 text-zinc-400">
-              <span className="flex items-center gap-1.5">
-                <Terminal className="w-3.5 h-3.5 text-blue-400" />
-                INITIALIZING TOVU
+          <div className="w-full max-w-md rounded-2xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-surface)] p-6 text-left font-mono text-sm shadow-2xl">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-[var(--tovu-border-hairline)] text-[var(--tovu-text-muted)]">
+              <span>Preparing Tovu</span>
+              <span className="tabular-nums">
+                {bootStep + 1}/{bootLogs.length}
               </span>
-              <span className="text-[10px] text-zinc-500">{bootStep + 1}/{bootLogs.length}</span>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {bootLogs.slice(0, bootStep + 1).map((log, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between text-zinc-300 animate-fadeIn"
+                  className="flex items-center justify-between text-[var(--tovu-text-secondary)]"
                 >
-                  <span className="flex items-center gap-2">
-                    <span className="text-zinc-600">&gt;</span>
-                    <span>{log.label}</span>
-                  </span>
-                  <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                    {log.status === "✓" ? (
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                    ) : (
-                      <span className="text-blue-400">{log.status}</span>
-                    )}
+                  <span>{log.label}</span>
+                  <span className="inline-flex items-center gap-1.5 text-[var(--tovu-accent)] text-[13px]">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{log.status}</span>
                   </span>
                 </div>
               ))}
             </div>
 
-            {/* Progress bar */}
-            <div className="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+            <div className="mt-5 h-1 w-full bg-[var(--tovu-border-hairline)] rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 transition-all duration-200"
+                className="h-full bg-[var(--tovu-accent)] transition-all duration-150"
                 style={{ width: `${((bootStep + 1) / bootLogs.length) * 100}%` }}
               />
             </div>
           </div>
         )}
-
-        {/* Subtle footer declaration */}
-        <div className="mt-16 text-[11px] font-mono text-zinc-600 flex items-center gap-2">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>SECURE SYSTEM INTERFACE · ZERO TRACKERS · LOCAL-FIRST</span>
-        </div>
       </div>
     </div>
   );

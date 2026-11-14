@@ -24,34 +24,39 @@ export const MiniAudioPlayer: React.FC<MiniAudioPlayerProps> = ({
   return (
     <div
       id="mini-audio-player"
-      className="fixed bottom-6 right-6 z-[110] flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-[#0e1116]/95 border border-white/20 text-white shadow-2xl backdrop-blur-xl animate-fadeIn"
+      role="region"
+      aria-label="Mini audio player"
+      className="fixed bottom-6 right-6 z-[110] flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[var(--tovu-bg-elevated)] border border-[var(--tovu-border-strong)] text-[var(--tovu-text-primary)] shadow-2xl backdrop-blur-xl"
     >
       <button
+        type="button"
         onClick={onExpand}
-        className="flex items-center gap-2.5 text-left cursor-pointer group"
+        className="flex items-center gap-3 text-left cursor-pointer group"
       >
-        <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+        <div className="w-9 h-9 rounded-xl bg-[var(--tovu-accent-subtle)] border border-[var(--tovu-accent-border)] flex items-center justify-center text-[var(--tovu-accent)] shrink-0">
           {mode === "ambient" ? (
-            <Radio className={`w-4 h-4 ${isPlaying ? "animate-pulse" : ""}`} />
+            <Radio className="w-4 h-4" />
           ) : (
-            <Volume2 className={`w-4 h-4 ${isPlaying ? "animate-pulse" : ""}`} />
+            <Volume2 className="w-4 h-4" />
           )}
         </div>
 
         <div className="max-w-[140px] sm:max-w-[190px]">
-          <div className="text-xs font-mono font-medium truncate group-hover:text-blue-300 transition-colors">
+          <div className="text-[13px] font-medium truncate group-hover:text-[var(--tovu-accent)] transition-colors">
             {title}
           </div>
-          <div className="text-[10px] font-mono text-zinc-400 truncate">
+          <div className="text-[12px] font-mono text-[var(--tovu-text-muted)] truncate">
             {artistOrType}
           </div>
         </div>
       </button>
 
-      <div className="flex items-center gap-1 pl-2 border-l border-white/10">
+      <div className="flex items-center gap-1 pl-2 border-l border-[var(--tovu-border-hairline)]">
         <button
+          type="button"
           onClick={onTogglePlay}
-          className="p-1.5 rounded-lg text-white hover:bg-white/10 transition-colors cursor-pointer"
+          aria-label={isPlaying ? "Pause audio" : "Play audio"}
+          className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-[var(--tovu-text-primary)] hover:bg-[var(--tovu-bg-inset)] transition-colors cursor-pointer"
           title={isPlaying ? "Pause" : "Play"}
         >
           {isPlaying ? (
@@ -62,16 +67,20 @@ export const MiniAudioPlayer: React.FC<MiniAudioPlayerProps> = ({
         </button>
 
         <button
+          type="button"
           onClick={onExpand}
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          aria-label="Expand audio controls"
+          className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)] hover:bg-[var(--tovu-bg-inset)] transition-colors cursor-pointer"
           title="Expand audio controls"
         >
           <Maximize2 className="w-3.5 h-3.5" />
         </button>
 
         <button
+          type="button"
           onClick={onDismiss}
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          aria-label="Stop and close audio player"
+          className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)] hover:bg-[var(--tovu-bg-inset)] transition-colors cursor-pointer"
           title="Stop & close audio"
         >
           <X className="w-3.5 h-3.5" />

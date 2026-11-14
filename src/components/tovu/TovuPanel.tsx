@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Sparkles, X, Send, Bot, User, RefreshCw } from "lucide-react";
+import { Sparkles, X, Send } from "lucide-react";
 import { askTovu } from "../../services/tovu";
-import { TovuChatMessage, TovuAction, TovuReference } from "../../types/tovu";
+import { TovuChatMessage } from "../../types/tovu";
 import { TovuResponse } from "../motion/TovuResponse";
 import { useScrollLock } from "../../hooks/useScrollLock";
 import Lenis from "lenis";
@@ -25,7 +25,6 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
   onOpenArticle,
   lenisRef,
 }) => {
-  // Lock background scroll and pause Lenis while Tovu modal is open
   useScrollLock({
     lock: isOpen,
     lenisRef,
@@ -35,13 +34,13 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
     {
       id: "initial-welcome",
       sender: "tovu",
-      text: "Tovu online. How may I assist your exploration of the systems, research, or architecture?",
-      timestamp: "SYSTEM READY",
+      text: "Hello — I can help you explore Victor's engineered systems, essays, active lab experiments, and knowledge lattice.",
+      timestamp: "Ready",
       actions: [
-        { label: "Show me the AI projects", type: "open_project", target: "nyayo" },
-        { label: "What is Victor currently learning?", type: "navigate", target: "lab" },
-        { label: "Take me to the Journal", type: "navigate", target: "journal" },
-        { label: "Who is Victor?", type: "navigate", target: "about" },
+        { label: "Explore AI projects", type: "open_project", target: "nyayo" },
+        { label: "Current lab research", type: "navigate", target: "lab" },
+        { label: "Read the Journal", type: "navigate", target: "journal" },
+        { label: "About Victor", type: "navigate", target: "about" },
       ],
     },
   ]);
@@ -52,15 +51,19 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 80);
-      if (initialPrompt) {
-        handleSendPrompt(initialPrompt);
-      }
+    if (!isOpen) return;
+    setTimeout(() => inputRef.current?.focus(), 80);
+    if (initialPrompt) {
+      handleSendPrompt(initialPrompt);
     }
-  }, [isOpen, initialPrompt]);
 
-  // Isolate wheel and touch events inside the messages container so they don't bubble
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isOpen, initialPrompt, onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
     const container = messagesContainerRef.current;
@@ -79,7 +82,6 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
     };
   }, [isOpen]);
 
-  // Smooth scroll to latest message when new messages are received
   useEffect(() => {
     if (messagesContainerRef.current) {
       const container = messagesContainerRef.current;
@@ -111,7 +113,9 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
         id: `tovu-${Date.now()}`,
         sender: "tovu",
         text: response.message,
-        timestamp: response.timestamp || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        timestamp:
+          response.timestamp ||
+          new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         actions: response.actions,
         references: response.references,
       };
@@ -120,7 +124,7 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
       const errorMessage: TovuChatMessage = {
         id: `tovu-err-${Date.now()}`,
         sender: "tovu",
-        text: "Diagnostic anomaly encountered while evaluating Tovu indices. Please retry your inquiry.",
+        text: "Unable to reach Tovu intelligence right now. Please try your question again.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -135,41 +139,43 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
     <div
       id="tovu-panel-backdrop"
       data-lenis-prevent="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md"
       onClick={onClose}
     >
       <div
         id="tovu-panel-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tovu-panel-title"
         data-lenis-prevent="true"
-        className="relative w-full max-w-2xl h-[85vh] max-h-[720px] rounded-2xl border border-blue-500/20 bg-[#090b0e] shadow-[0_25px_80px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden text-zinc-100"
+        className="relative w-full max-w-3xl h-[86vh] max-h-[760px] rounded-2xl border border-[var(--tovu-border-strong)] bg-[var(--tovu-bg-canvas)] shadow-2xl flex flex-col overflow-hidden text-[var(--tovu-text-primary)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-[#0d1015]/80 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400">
-              <Sparkles className="w-4 h-4 animate-pulse" />
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-surface)]">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-[var(--tovu-accent-soft)] border border-[var(--tovu-accent-border)] text-[var(--tovu-accent)] flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-mono text-sm font-semibold text-white tracking-wide">
-                  TOVU
-                </h3>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-300 border border-blue-500/20">
-                  SYSTEM INTELLIGENCE
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400">
-                Curated intelligence for exploring systems, architecture, and thought
+              <h3
+                id="tovu-panel-title"
+                className="font-display text-base sm:text-lg font-semibold text-[var(--tovu-text-primary)]"
+              >
+                Ask Tovu
+              </h3>
+              <p className="text-[13px] text-[var(--tovu-text-muted)]">
+                Explore systems, essays, architecture, and research
               </p>
             </div>
           </div>
 
           <button
             id="close-tovu-btn"
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-            aria-label="Close Tovu Panel"
+            className="w-10 h-10 inline-flex items-center justify-center rounded-xl text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)] hover:bg-[var(--tovu-bg-elevated)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
+            aria-label="Close Ask Tovu dialog"
           >
             <X className="w-5 h-5" />
           </button>
@@ -181,7 +187,7 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
           id="tovu-messages-stream"
           data-lenis-prevent="true"
           tabIndex={0}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4 scrollbar-thin outline-none"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-5 scrollbar-thin outline-none"
           style={{
             WebkitOverflowScrolling: "touch",
             overscrollBehavior: "contain",
@@ -192,19 +198,13 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
             return (
               <div
                 key={msg.id}
-                className={`flex gap-3 ${isTovu ? "items-start" : "items-start justify-end"}`}
+                className={`flex ${isTovu ? "justify-start" : "justify-end"}`}
               >
-                {isTovu && (
-                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                )}
-
                 <div
-                  className={`max-w-[85%] rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
+                  className={`max-w-[90%] sm:max-w-[82%] rounded-2xl p-5 ${
                     isTovu
-                      ? "bg-[#111419] border border-white/10 text-zinc-200"
-                      : "bg-blue-600 text-white shadow-lg"
+                      ? "bg-[var(--tovu-bg-surface)] border border-[var(--tovu-border-hairline)] text-[var(--tovu-text-primary)]"
+                      : "bg-[var(--tovu-text-primary)] text-[var(--tovu-bg-canvas)] text-[15px] sm:text-base leading-relaxed"
                   }`}
                 >
                   {isTovu ? (
@@ -230,31 +230,21 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
                   )}
 
                   <div
-                    className={`text-[9px] font-mono mt-2 text-right ${
-                      isTovu ? "text-zinc-500" : "text-blue-200"
+                    className={`text-[12px] font-mono mt-3 text-right ${
+                      isTovu ? "text-[var(--tovu-text-muted)]" : "opacity-70"
                     }`}
                   >
                     {msg.timestamp}
                   </div>
                 </div>
-
-                {!isTovu && (
-                  <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-white shrink-0 mt-0.5">
-                    <User className="w-4 h-4" />
-                  </div>
-                )}
               </div>
             );
           })}
 
           {loading && (
-            <div className="flex gap-3 items-start">
-              <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
-                <Bot className="w-4 h-4 animate-spin" />
-              </div>
-              <div className="rounded-2xl px-4 py-3 bg-[#111419] border border-white/10 text-xs font-mono text-zinc-400 flex items-center gap-2">
-                <RefreshCw className="w-3 h-3 animate-spin text-blue-400" />
-                <span>Tovu evaluating systems and architecture...</span>
+            <div className="flex justify-start" aria-live="polite">
+              <div className="rounded-2xl px-5 py-4 bg-[var(--tovu-bg-surface)] border border-[var(--tovu-border-hairline)] text-sm text-[var(--tovu-text-secondary)]">
+                Searching systems, essays, and architecture notes...
               </div>
             </div>
           )}
@@ -262,39 +252,38 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Bar */}
-        <div className="p-3.5 sm:p-4 border-t border-white/10 bg-[#0d1015]/80">
+        {/* Input & Suggestions */}
+        <div className="p-4 sm:p-5 border-t border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-surface)] space-y-3">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendPrompt();
             }}
-            className="flex items-center gap-2 bg-[#12161d] border border-white/10 rounded-xl px-3.5 py-2 focus-within:border-blue-500/50 transition-colors"
+            className="flex items-center gap-2.5 bg-[var(--tovu-bg-inset)] border border-[var(--tovu-border-hairline)] rounded-xl px-4 py-2 focus-within:border-[var(--tovu-accent)] transition-colors"
           >
             <input
               ref={inputRef}
               id="tovu-query-input"
               type="text"
-              placeholder="Ask anything (e.g. 'Show me the AI projects' or 'Explain NYAYO architecture')..."
+              placeholder="Ask about projects, architecture, essays, or experiments..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={loading}
-              className="w-full bg-transparent text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none tracking-wide"
+              className="w-full min-h-[40px] bg-transparent text-[15px] sm:text-base text-[var(--tovu-text-primary)] placeholder-[var(--tovu-text-muted)] focus:outline-none"
             />
 
             <button
               id="tovu-submit-btn"
               type="submit"
               disabled={!input.trim() || loading}
-              className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+              aria-label="Send question"
+              className="w-10 h-10 inline-flex items-center justify-center rounded-lg bg-[var(--tovu-accent)] text-[var(--tovu-accent-ink)] disabled:opacity-35 disabled:cursor-not-allowed transition-opacity cursor-pointer shrink-0"
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Prompt Suggestion Chips */}
-          <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[10px] font-mono text-zinc-400">
-            <span className="shrink-0 text-zinc-500">TRY:</span>
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
             {[
               "Show me the AI projects",
               "What is Victor currently learning?",
@@ -305,9 +294,9 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
                 key={i}
                 type="button"
                 onClick={() => handleSendPrompt(sugg)}
-                className="shrink-0 px-2 py-0.5 rounded-full bg-white/[0.04] hover:bg-white/10 border border-white/5 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                className="min-h-[36px] shrink-0 px-3.5 py-1.5 rounded-lg bg-[var(--tovu-bg-elevated)] hover:border-[var(--tovu-accent-border)] border border-[var(--tovu-border-hairline)] text-[13px] text-[var(--tovu-text-secondary)] hover:text-[var(--tovu-text-primary)] transition-colors cursor-pointer whitespace-nowrap"
               >
-                → {sugg}
+                {sugg}
               </button>
             ))}
           </div>
@@ -317,6 +306,5 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
   );
 };
 
-// Backwards-compatible alias
 export const DoomPanel = TovuPanel;
 export type DoomPanelProps = TovuPanelProps;

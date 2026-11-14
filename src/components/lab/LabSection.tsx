@@ -1,131 +1,108 @@
 import React, { useState } from "react";
-import { FlaskConical, Terminal, Activity, ArrowRight, Code2, CheckCircle2, PauseCircle, HelpCircle } from "lucide-react";
+import { ChevronDown, Terminal } from "lucide-react";
 import { EXPERIMENTS } from "../../data/experiments";
-import { Experiment, ExperimentStatus } from "../../types/experiment";
-import { TextReveal } from "../motion/TextReveal";
-import { WordReveal } from "../motion/WordReveal";
-import { SystemText } from "../motion/SystemText";
-import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 export const LabSection: React.FC = () => {
   const [filter, setFilter] = useState<string>("ALL");
   const [expandedId, setExpandedId] = useState<string | null>("exp-07-football");
 
-  const statusColors: Record<ExperimentStatus, { bg: string; text: string; border: string }> = {
-    Idea: { bg: "bg-purple-500/10", text: "text-purple-300", border: "border-purple-500/20" },
-    Exploring: { bg: "bg-amber-500/10", text: "text-amber-300", border: "border-amber-500/20" },
-    Prototype: { bg: "bg-cyan-500/10", text: "text-cyan-300", border: "border-cyan-500/20" },
-    Building: { bg: "bg-emerald-500/10", text: "text-emerald-300", border: "border-emerald-500/20" },
-    Paused: { bg: "bg-zinc-500/10", text: "text-zinc-400", border: "border-zinc-500/20" },
-    Archived: { bg: "bg-slate-500/10", text: "text-slate-400", border: "border-slate-500/20" }
-  };
-
-  const filteredExperiments = filter === "ALL"
-    ? EXPERIMENTS
-    : EXPERIMENTS.filter((e) => e.status === filter);
+  const filteredExperiments =
+    filter === "ALL"
+      ? EXPERIMENTS
+      : EXPERIMENTS.filter((e) => e.status === filter);
 
   return (
-    <section id="lab" className="relative py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100 overflow-hidden">
-      {/* Architectural Background Typography Parallax */}
-      <ParallaxBackgroundText className="text-[16vw] absolute top-6 left-6 z-0" triggerId="lab">
-        LAB
-      </ParallaxBackgroundText>
-
+    <section
+      id="lab"
+      className="relative py-24 sm:py-32 px-5 sm:px-8 lg:px-10 max-w-7xl mx-auto text-[var(--tovu-text-primary)] border-t border-[var(--tovu-border-hairline)]"
+    >
       {/* Header */}
-      <div className="flex flex-col sm:flex-col sm:items-start gap-4 mb-10 relative z-10">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
         <div>
-          
-          <TextReveal
-            as="h2"
-            trigger="scroll"
-            duration={0.9}
-            className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight"
-          >
-            Unfinished Ideas &amp; Active R&amp;D
-          </TextReveal>
+          <p className="text-[13px] font-mono tracking-[0.14em] uppercase text-[var(--tovu-accent)] mb-3">
+            03 · Laboratory
+          </p>
+          <h2 className="font-display font-semibold tracking-[-0.025em] text-[var(--tovu-text-primary)] leading-[1.06] text-[clamp(2.25rem,4.4vw,4rem)]">
+            Active R&amp;D &amp; Prototypes
+          </h2>
         </div>
-        <WordReveal
-          trigger="scroll"
-          delay={0.2}
-          className="text-sm text-zinc-400 max-w-md font-normal"
-        >
-          Work contains finished systems. Lab is where hypotheses are formulated, tested, benchmarked, or archived.
-        </WordReveal>
+
+        <p className="text-[17px] text-[var(--tovu-text-secondary)] max-w-md leading-[1.6]">
+          Work holds finished systems. Lab is the research notebook where hypotheses are tested, benchmarked, or archived.
+        </p>
       </div>
 
-      {/* Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none relative z-10">
-        {["ALL", "Building", "Prototype", "Exploring", "Idea"].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status)}
-            className={`px-3 py-1 rounded-full text-xs font-mono tracking-wider transition-all cursor-pointer ${
-              filter === status
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                : "bg-white/5 text-zinc-400 hover:text-white border border-white/5"
-            }`}
-          >
-            {status}
-          </button>
-        ))}
+      {/* Filter Controls */}
+      <div
+        role="tablist"
+        aria-label="Filter experiments by status"
+        className="inline-flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl bg-[var(--tovu-bg-surface)] border border-[var(--tovu-border-hairline)] mb-10"
+      >
+        {["ALL", "Building", "Prototype", "Exploring", "Idea"].map((status) => {
+          const isActive = filter === status;
+          return (
+            <button
+              key={status}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setFilter(status)}
+              className={`min-h-[40px] px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)] ${
+                isActive
+                  ? "bg-[var(--tovu-text-primary)] text-[var(--tovu-bg-canvas)] shadow-sm"
+                  : "text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)]"
+              }`}
+            >
+              {status === "ALL" ? "All" : status}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Experiments List */}
-      <div className="space-y-6 relative z-10">
+      {/* Research Log Entries */}
+      <div className="divide-y divide-[var(--tovu-border-hairline)] border-y border-[var(--tovu-border-hairline)]">
         {filteredExperiments.map((exp) => {
           const isExpanded = expandedId === exp.id;
-          const statusStyle = statusColors[exp.status];
 
           return (
-            <div
-              key={exp.id}
-              id={`lab-card-${exp.id}`}
-              className="rounded-3xl border border-white/10 bg-[#0d0f12] hover:border-emerald-500/30 transition-all duration-300 overflow-hidden"
-            >
-              <div
-                onClick={() => setExpandedId(isExpanded ? null : exp.id)}
-                className="p-6 sm:p-8 cursor-pointer flex flex-col lg:flex-row lg:items-center justify-between gap-6"
-              >
-                <div className="space-y-2 max-w-3xl">
-                  <div className="flex items-center gap-3">
-                    <SystemText
-                      variant="decode"
-                      trigger="scroll"
-                      duration={0.4}
-                      className="text-xs font-mono font-semibold text-emerald-400"
-                    >
+            <div key={exp.id} id={`lab-card-${exp.id}`} className="py-7 sm:py-9">
+              <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                <div className="space-y-3 max-w-3xl">
+                  {/* Unboxed Experiment Index & Status */}
+                  <div className="flex flex-wrap items-center gap-2.5 text-[13px] font-mono text-[var(--tovu-text-muted)]">
+                    <span className="font-semibold text-[var(--tovu-accent)] tabular-nums">
                       {exp.number}
-                    </SystemText>
-                    <span className="text-zinc-600">|</span>
-                    <span className="text-xs font-mono text-zinc-400">
-                      {exp.category}
                     </span>
-                    <span
-                      className={`text-[10px] font-mono uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}
-                    >
-                      {exp.status}
+                    <span aria-hidden="true">·</span>
+                    <span>{exp.category}</span>
+                    <span aria-hidden="true">·</span>
+                    <span className="text-[var(--tovu-text-primary)] font-medium">
+                      Status: {exp.status}
                     </span>
                   </div>
 
-                  <h3 className="text-xl sm:text-2xl font-mono text-white tracking-tight">
+                  <h3 className="font-display font-semibold tracking-tight text-[var(--tovu-text-primary)] text-[clamp(1.5rem,2.2vw,2rem)] leading-[1.2]">
                     {exp.title}
                   </h3>
 
-                  <p className="text-sm text-zinc-300 leading-relaxed pt-1">
-                    <span className="text-zinc-500 font-mono text-xs uppercase mr-2">HYPOTHESIS:</span>
+                  <p className="text-base sm:text-[17px] text-[var(--tovu-text-secondary)] leading-[1.65]">
+                    <span className="font-mono text-[13px] uppercase tracking-wider text-[var(--tovu-text-muted)] mr-2.5">
+                      Hypothesis
+                    </span>
                     {exp.hypothesis}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-4 shrink-0">
-                  {exp.metrics && (
-                    <div className="flex items-center gap-4 pr-4 border-r border-white/10 hidden sm:flex">
+                {/* Metrics & Expand Toggle */}
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-6 shrink-0 lg:pt-2">
+                  {exp.metrics && exp.metrics.length > 0 && (
+                    <div className="flex items-center gap-6 pr-6 border-r border-[var(--tovu-border-hairline)]">
                       {exp.metrics.slice(0, 2).map((m, i) => (
-                        <div key={i} className="text-right font-mono">
-                          <div className="text-base font-semibold text-emerald-400">
+                        <div key={i} className="font-mono">
+                          <div className="text-lg sm:text-xl font-semibold text-[var(--tovu-accent)] tabular-nums">
                             {m.value}
                           </div>
-                          <div className="text-[10px] text-zinc-500 uppercase">
+                          <div className="text-[13px] text-[var(--tovu-text-muted)]">
                             {m.label}
                           </div>
                         </div>
@@ -133,62 +110,68 @@ export const LabSection: React.FC = () => {
                     </div>
                   )}
 
-                  <button className="px-4 py-2 rounded-full border border-white/10 bg-white/5 text-xs font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer">
-                    {isExpanded ? "Collapse" : "Inspect"}
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    onClick={() => setExpandedId(isExpanded ? null : exp.id)}
+                    className="min-h-[44px] inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-surface)] hover:border-[var(--tovu-border-strong)] text-sm font-medium text-[var(--tovu-text-primary)] transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
+                  >
+                    <span>{isExpanded ? "Hide Notes" : "Inspect Notes"}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
                 </div>
               </div>
 
-              {/* Expanded State: Current State, Next Experiment & Code Snippet */}
+              {/* Expanded Research Notes */}
               {isExpanded && (
-                <div className="px-6 sm:px-8 pb-8 pt-4 border-t border-white/5 bg-[#090b0d]/60 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <span className="text-xs font-mono uppercase text-zinc-500">
-                        CURRENT STATE
-                      </span>
-                      <p className="text-sm text-zinc-300 leading-relaxed">
+                <div className="mt-7 pt-7 border-t border-[var(--tovu-border-hairline)] space-y-7">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <h4 className="text-[13px] font-mono uppercase tracking-wider text-[var(--tovu-text-muted)]">
+                        Current State
+                      </h4>
+                      <p className="text-base sm:text-[17px] text-[var(--tovu-text-secondary)] leading-[1.65]">
                         {exp.currentState}
                       </p>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <span className="text-xs font-mono uppercase text-emerald-400">
-                        NEXT EXPERIMENT
-                      </span>
-                      <p className="text-sm text-zinc-300 leading-relaxed">
+                    <div className="space-y-2">
+                      <h4 className="text-[13px] font-mono uppercase tracking-wider text-[var(--tovu-accent)]">
+                        Next Experiment
+                      </h4>
+                      <p className="text-base sm:text-[17px] text-[var(--tovu-text-secondary)] leading-[1.65]">
                         {exp.nextExperiment}
                       </p>
                     </div>
                   </div>
 
-                  {/* Code Snippet if present */}
                   {exp.snippet && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
-                        <span className="flex items-center gap-1.5">
-                          <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between text-[13px] font-mono text-[var(--tovu-text-muted)]">
+                        <span className="inline-flex items-center gap-2">
+                          <Terminal className="w-4 h-4 text-[var(--tovu-accent)]" />
                           {exp.snippet.filename}
                         </span>
-                        <span className="text-[10px] uppercase text-zinc-500">
-                          {exp.snippet.language}
-                        </span>
+                        <span className="uppercase">{exp.snippet.language}</span>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-[#06080a] p-4 font-mono text-xs text-zinc-300 overflow-x-auto">
-                        <pre><code>{exp.snippet.code}</code></pre>
+                      <div className="rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-inset)] p-5 font-mono text-[13px] sm:text-sm text-[var(--tovu-text-secondary)] overflow-x-auto leading-relaxed">
+                        <pre>
+                          <code>{exp.snippet.code}</code>
+                        </pre>
                       </div>
                     </div>
                   )}
 
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5 pt-2">
-                    {exp.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/5"
-                      >
-                        #{tag}
-                      </span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-mono text-[var(--tovu-text-muted)]">
+                    {exp.tags.map((tag, idx) => (
+                      <React.Fragment key={tag}>
+                        {idx > 0 && <span aria-hidden="true">·</span>}
+                        <span>{tag}</span>
+                      </React.Fragment>
                     ))}
                   </div>
                 </div>

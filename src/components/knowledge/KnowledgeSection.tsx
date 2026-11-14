@@ -1,232 +1,230 @@
 import React, { useState } from "react";
-import { Network, BookOpen, FolderKanban, ArrowRight, ExternalLink, Cpu, Layers } from "lucide-react";
-import { KNOWLEDGE_NODES, KNOWLEDGE_EDGES } from "../../data/knowledge";
+import { BookOpen, FolderKanban, ArrowRight, ExternalLink } from "lucide-react";
+import { KNOWLEDGE_NODES } from "../../data/knowledge";
 import { KnowledgeNode } from "../../types/knowledge";
-import { TextReveal } from "../motion/TextReveal";
-import { WordReveal } from "../motion/WordReveal";
-import { HighlightText } from "../motion/HighlightText";
-import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 interface KnowledgeSectionProps {
   onOpenProject: (slug: string) => void;
   onOpenArticle: (slug: string) => void;
 }
 
+const CATEGORIES = [
+  "ALL",
+  "AI & ML",
+  "Systems & Infrastructure",
+  "Data & Storage",
+  "Product & Design",
+];
+
 export const KnowledgeSection: React.FC<KnowledgeSectionProps> = ({
   onOpenProject,
-  onOpenArticle
+  onOpenArticle,
 }) => {
   const [selectedNode, setSelectedNode] = useState<KnowledgeNode>(KNOWLEDGE_NODES[0]);
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
-  const categories = ["ALL", "AI & ML", "Systems & Infrastructure", "Data & Storage", "Product & Design"];
+  const filteredNodes =
+    categoryFilter === "ALL"
+      ? KNOWLEDGE_NODES
+      : KNOWLEDGE_NODES.filter((n) => n.category === categoryFilter);
 
-  const filteredNodes = categoryFilter === "ALL"
-    ? KNOWLEDGE_NODES
-    : KNOWLEDGE_NODES.filter((n) => n.category === categoryFilter);
-
-  // Find connected nodes
   const connectedNodes = KNOWLEDGE_NODES.filter(
     (n) => selectedNode.connections.includes(n.id) || n.connections.includes(selectedNode.id)
   );
 
   return (
-    <section id="knowledge" className="relative py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100 overflow-hidden">
-      {/* Architectural Background Typography Parallax */}
-      <ParallaxBackgroundText className="text-[14vw] absolute top-6 right-6 z-0" triggerId="knowledge">
-        LATTICE
-      </ParallaxBackgroundText>
-
+    <section
+      id="knowledge"
+      className="relative py-24 sm:py-32 px-5 sm:px-8 lg:px-10 max-w-7xl mx-auto text-[var(--tovu-text-primary)] border-t border-[var(--tovu-border-hairline)]"
+    >
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-col sm:items-start mb-10 relative z-10">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
         <div>
-          
-          <TextReveal
-            as="h2"
-            trigger="scroll"
-            duration={0.9}
-            className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight"
-          >
-            Interconnected Systems &amp; Mental Models
-          </TextReveal>
+          <p className="text-[13px] font-mono tracking-[0.14em] uppercase text-[var(--tovu-accent)] mb-3">
+            04 · Knowledge Lattice
+          </p>
+          <h2 className="font-display font-semibold tracking-[-0.025em] text-[var(--tovu-text-primary)] leading-[1.06] text-[clamp(2.25rem,4.4vw,4rem)]">
+            Systems &amp; Mental Models
+          </h2>
         </div>
-        <WordReveal
-          trigger="scroll"
-          delay={0.2}
-          className="text-sm text-zinc-400 max-w-md font-normal"
-        >
-          Ideas do not exist in isolation. This lattice maps the causal connections between distributed primitives, vector mathematics, foundational books, and AI engineering.
-        </WordReveal>
+
+        <p className="text-[17px] text-[var(--tovu-text-secondary)] max-w-md leading-[1.6]">
+          Ideas do not exist in isolation. Select any concept to trace its connections across architecture, research, and essays.
+        </p>
       </div>
 
-      {/* Category Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none relative z-10">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategoryFilter(cat)}
-            className={`px-3 py-1 rounded-full text-xs font-mono tracking-wider transition-all cursor-pointer ${
-              categoryFilter === cat
-                ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold"
-                : "bg-white/5 text-zinc-400 hover:text-white border border-white/5"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+      {/* Category Filter Tabs */}
+      <div
+        role="tablist"
+        aria-label="Filter knowledge concepts by category"
+        className="inline-flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl bg-[var(--tovu-bg-surface)] border border-[var(--tovu-border-hairline)] mb-10"
+      >
+        {CATEGORIES.map((cat) => {
+          const isActive = categoryFilter === cat;
+          return (
+            <button
+              key={cat}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setCategoryFilter(cat)}
+              className={`min-h-[40px] px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)] ${
+                isActive
+                  ? "bg-[var(--tovu-text-primary)] text-[var(--tovu-bg-canvas)] shadow-sm"
+                  : "text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)]"
+              }`}
+            >
+              {cat === "ALL" ? "All Concepts" : cat}
+            </button>
+          );
+        })}
       </div>
 
-      {/* 2-Column Lattice Explorer: Nodes Grid + Dossier Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
-        {/* Left: Interactive Nodes Grid */}
-        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-h-[640px] overflow-y-auto p-1 scrollbar-thin">
+      {/* 2-Column Workbench: Accessible Concept Tiles + Sticky Concept Dossier */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left: Concept Tiles */}
+        <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           {filteredNodes.map((node) => {
             const isSelected = selectedNode.id === node.id;
             return (
-              <div
+              <button
                 key={node.id}
                 id={`knowledge-node-${node.id}`}
+                type="button"
+                aria-pressed={isSelected}
                 onClick={() => setSelectedNode(node)}
-                className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between ${
+                className={`p-5 rounded-2xl border text-left transition-colors duration-200 cursor-pointer flex flex-col justify-between gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)] ${
                   isSelected
-                    ? "bg-indigo-500/15 border-indigo-400/50 shadow-[0_0_20px_rgba(99,102,241,0.2)] text-white"
-                    : "bg-[#0c0e11] border-white/5 hover:border-white/20 text-zinc-300 hover:bg-[#111418]"
+                    ? "bg-[var(--tovu-accent-soft)] border-[var(--tovu-accent-border)] text-[var(--tovu-text-primary)]"
+                    : "bg-[var(--tovu-bg-surface)] border-[var(--tovu-border-hairline)] hover:border-[var(--tovu-border-strong)] text-[var(--tovu-text-secondary)]"
                 }`}
               >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-zinc-400">
-                      {node.category}
-                    </span>
-                    <span className="text-[10px] font-mono text-zinc-500">
-                      {node.type}
-                    </span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 text-[13px] font-mono text-[var(--tovu-text-muted)]">
+                    <span className="truncate">{node.category}</span>
+                    <span className="shrink-0">{node.type}</span>
                   </div>
 
-                  <h3 className="text-base font-mono font-medium mb-1.5">
+                  <h3 className="font-display text-lg font-semibold text-[var(--tovu-text-primary)] leading-snug">
                     {node.label}
                   </h3>
 
-                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                  <p className="text-[14px] text-[var(--tovu-text-secondary)] line-clamp-2 leading-relaxed">
                     {node.description}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 mt-2 border-t border-white/5 text-[11px] font-mono text-zinc-500">
-                  <span>{node.connections.length} links</span>
-                  <span className="text-indigo-400 flex items-center gap-0.5">
-                    Inspect <ArrowRight className="w-3 h-3" />
+                <div className="flex items-center justify-between pt-3 border-t border-[var(--tovu-border-hairline)] text-[13px] font-mono">
+                  <span className="text-[var(--tovu-text-muted)] tabular-nums">
+                    {node.connections.length} links
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[var(--tovu-accent)] font-medium">
+                    <span>Inspect</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
 
-        {/* Right: Selected Concept Dossier */}
-        <div className="lg:col-span-5 rounded-3xl border border-white/10 bg-[#0d0f13] p-6 sm:p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden">
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-xs font-mono text-indigo-400 uppercase tracking-widest">
-                <Layers className="w-3.5 h-3.5" />
-                <span>CONCEPT DOSSIER // {selectedNode.level || "SYSTEM ARCHETYPE"}</span>
+        {/* Right: Sticky Concept Dossier */}
+        <aside
+          aria-label="Selected concept details"
+          className="lg:col-span-6 lg:sticky lg:top-28 rounded-2xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-surface)] p-7 sm:p-9 space-y-6"
+        >
+          <div className="space-y-2.5">
+            <div className="flex flex-wrap items-center gap-2 text-[13px] font-mono text-[var(--tovu-accent)] uppercase tracking-wider">
+              <span>{selectedNode.level || "Concept"}</span>
+              <span aria-hidden="true" className="text-[var(--tovu-border-strong)]">·</span>
+              <span className="text-[var(--tovu-text-muted)]">{selectedNode.category}</span>
+            </div>
+
+            <h3 className="font-display font-semibold tracking-tight text-[var(--tovu-text-primary)] text-[clamp(1.625rem,2.4vw,2.25rem)] leading-[1.15]">
+              {selectedNode.label}
+            </h3>
+          </div>
+
+          <p className="text-[17px] text-[var(--tovu-text-secondary)] leading-[1.65] pt-5 border-t border-[var(--tovu-border-hairline)]">
+            {selectedNode.description}
+          </p>
+
+          {/* Study Note */}
+          {selectedNode.readingOrCourse && (
+            <div className="p-5 rounded-xl border border-[var(--tovu-accent-border)] bg-[var(--tovu-accent-soft)] space-y-2">
+              <div className="text-[13px] font-mono uppercase tracking-wider text-[var(--tovu-accent)] font-semibold">
+                Source Study Note
               </div>
-              <h3 className="text-2xl sm:text-3xl font-mono text-white mb-2">
-                {selectedNode.label}
-              </h3>
-              <p className="text-xs font-mono text-zinc-500 uppercase">
-                {selectedNode.category} · TYPE: {selectedNode.type}
+              <div className="text-sm text-[var(--tovu-text-secondary)] flex flex-wrap gap-x-4 gap-y-1">
+                <span>
+                  Author: <strong className="text-[var(--tovu-text-primary)] font-medium">{selectedNode.readingOrCourse.author}</strong>
+                </span>
+                <span>
+                  Progress: <strong className="text-[var(--tovu-accent)] font-medium">{selectedNode.readingOrCourse.progress}</strong>
+                </span>
+              </div>
+              <p className="text-[15px] text-[var(--tovu-text-primary)] italic leading-relaxed pt-1">
+                &ldquo;{selectedNode.readingOrCourse.keyTakeaway}&rdquo;
               </p>
             </div>
+          )}
 
-            <p className="text-sm text-zinc-300 leading-relaxed pt-2 border-t border-white/10">
-              {selectedNode.description}
-            </p>
+          {/* Cross-Links to Work & Journal */}
+          {(selectedNode.relatedProjects?.length || selectedNode.relatedArticles?.length) ? (
+            <div className="space-y-4 pt-5 border-t border-[var(--tovu-border-hairline)]">
+              <h4 className="text-[13px] font-mono uppercase tracking-wider text-[var(--tovu-text-muted)]">
+                Related Work &amp; Writing
+              </h4>
 
-            {/* Reading / Course details if present */}
-            {selectedNode.readingOrCourse && (
-              <div className="p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 space-y-2">
-                <div className="text-xs font-mono text-indigo-300 font-semibold">
-                  BOOK / SOURCE STUDY NOTE
-                </div>
-                <div className="text-xs text-zinc-400">
-                  Author: <span className="text-zinc-200">{selectedNode.readingOrCourse.author}</span>
-                </div>
-                <div className="text-xs text-zinc-400">
-                  Status: <span className="text-emerald-400">{selectedNode.readingOrCourse.progress}</span>
-                </div>
-                <p className="text-xs text-zinc-300 italic pt-1">
-                  &ldquo;{selectedNode.readingOrCourse.keyTakeaway}&rdquo;
-                </p>
-              </div>
-            )}
-
-            {/* Direct Cross-Links: Related Systems / Articles */}
-            <div className="space-y-3 pt-4 border-t border-white/10">
-              <span className="text-xs font-mono uppercase text-zinc-500 tracking-wider block">
-                Direct Cross-Links in Tovu
-              </span>
-
-              {selectedNode.relatedProjects && selectedNode.relatedProjects.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[11px] font-mono text-blue-400 flex items-center gap-1">
-                    <FolderKanban className="w-3 h-3" /> Related Work Systems:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedNode.relatedProjects.map((slug) => (
-                      <button
-                        key={slug}
-                        onClick={() => onOpenProject(slug)}
-                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        <span>{slug}</span>
-                        <ExternalLink className="w-3 h-3 text-zinc-500" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedNode.relatedArticles && selectedNode.relatedArticles.length > 0 && (
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[11px] font-mono text-amber-400 flex items-center gap-1">
-                    <BookOpen className="w-3 h-3" /> Related Journal Essays:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedNode.relatedArticles.map((slug) => (
-                      <button
-                        key={slug}
-                        onClick={() => onOpenArticle(slug)}
-                        className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
-                      >
-                        <span>{slug}</span>
-                        <ExternalLink className="w-3 h-3 text-zinc-500" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Connected Concepts */}
-            <div className="space-y-2 pt-4 border-t border-white/10">
-              <span className="text-xs font-mono uppercase text-zinc-500 tracking-wider block">
-                Connected Lattice Neighbors ({connectedNodes.length})
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {connectedNodes.map((n) => (
+              <div className="flex flex-wrap gap-2.5">
+                {selectedNode.relatedProjects?.map((slug) => (
                   <button
-                    key={n.id}
-                    onClick={() => setSelectedNode(n)}
-                    className="px-2.5 py-1 rounded-full text-xs font-mono bg-white/5 hover:bg-indigo-500/20 text-zinc-400 hover:text-indigo-300 border border-white/5 hover:border-indigo-500/30 transition-all cursor-pointer"
+                    key={slug}
+                    type="button"
+                    onClick={() => onOpenProject(slug)}
+                    className="min-h-[40px] px-4 py-2 rounded-xl bg-[var(--tovu-bg-elevated)] hover:border-[var(--tovu-accent-border)] border border-[var(--tovu-border-hairline)] text-sm font-mono text-[var(--tovu-text-primary)] transition-colors cursor-pointer inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
                   >
-                    {n.label}
+                    <FolderKanban className="w-4 h-4 text-[var(--tovu-accent)]" />
+                    <span>{slug}</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-[var(--tovu-text-muted)]" />
+                  </button>
+                ))}
+
+                {selectedNode.relatedArticles?.map((slug) => (
+                  <button
+                    key={slug}
+                    type="button"
+                    onClick={() => onOpenArticle(slug)}
+                    className="min-h-[40px] px-4 py-2 rounded-xl bg-[var(--tovu-bg-elevated)] hover:border-[var(--tovu-accent-border)] border border-[var(--tovu-border-hairline)] text-sm font-mono text-[var(--tovu-text-primary)] transition-colors cursor-pointer inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
+                  >
+                    <BookOpen className="w-4 h-4 text-[var(--tovu-accent)]" />
+                    <span>{slug}</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-[var(--tovu-text-muted)]" />
                   </button>
                 ))}
               </div>
             </div>
+          ) : null}
+
+          {/* Connected Lattice Neighbors */}
+          <div className="space-y-3 pt-5 border-t border-[var(--tovu-border-hairline)]">
+            <h4 className="text-[13px] font-mono uppercase tracking-wider text-[var(--tovu-text-muted)] tabular-nums">
+              Connected Concepts ({connectedNodes.length})
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {connectedNodes.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => setSelectedNode(n)}
+                  className="min-h-[40px] px-3.5 py-2 rounded-xl text-sm font-medium bg-[var(--tovu-bg-elevated)] hover:border-[var(--tovu-accent-border)] text-[var(--tovu-text-secondary)] hover:text-[var(--tovu-text-primary)] border border-[var(--tovu-border-hairline)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
+                >
+                  {n.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </aside>
       </div>
     </section>
   );

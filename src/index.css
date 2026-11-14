@@ -1,115 +1,139 @@
 @import "tailwindcss";
 @custom-variant light (&:where(.light, .light *, [data-theme="light"], [data-theme="light"] *));
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
 
 @theme {
-  --color-background: #090a0b;
-  --color-surface: #121415;
-  --color-on-surface: #f1f2f4;
-  --color-accent: #c3c0ff;
+  --font-display: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-background: #080b10;
+  --color-surface: #0f1319;
+  --color-on-surface: #f1f5f9;
+  --color-accent: #8ce0bd;
 }
 
 :root {
+  color-scheme: dark;
+  --tovu-bg-canvas: #080b10;
+  --tovu-bg-surface: #0f1319;
+  --tovu-bg-elevated: #151b23;
+  --tovu-bg-inset: #0a0d13;
+  --tovu-border-hairline: rgba(226, 232, 240, 0.1);
+  --tovu-border-strong: rgba(226, 232, 240, 0.2);
+  --tovu-text-primary: #f1f5f9;
+  --tovu-text-secondary: #cbd5e1;
+  --tovu-text-muted: #94a3b8;
+  --tovu-accent: #8ce0bd;
+  --tovu-accent-strong: #5eead4;
+  --tovu-accent-soft: rgba(140, 224, 189, 0.12);
+  --tovu-accent-border: rgba(140, 224, 189, 0.28);
+  --tovu-accent-ink: #06201b;
+
   --tovu-hero-bg: #080b10;
   --tovu-hero-scrim-desktop: radial-gradient(
-    ellipse at 22% 50%,
-    rgba(8, 11, 16, 0.90) 0%,
-    rgba(8, 11, 16, 0.68) 42%,
-    rgba(8, 11, 16, 0.18) 78%,
+    ellipse at 24% 50%,
+    rgba(8, 11, 16, 0.92) 0%,
+    rgba(8, 11, 16, 0.72) 42%,
+    rgba(8, 11, 16, 0.2) 78%,
     rgba(8, 11, 16, 0.06) 100%
   );
   --tovu-hero-scrim-mobile: radial-gradient(
     ellipse at 45% 46%,
-    rgba(8, 11, 16, 0.88) 0%,
-    rgba(8, 11, 16, 0.62) 55%,
-    rgba(8, 11, 16, 0.22) 100%
+    rgba(8, 11, 16, 0.9) 0%,
+    rgba(8, 11, 16, 0.66) 55%,
+    rgba(8, 11, 16, 0.24) 100%
   );
   --tovu-hero-bottom-fade: linear-gradient(
     to top,
-    #07080a 0%,
-    rgba(7, 8, 10, 0.65) 50%,
+    #080b10 0%,
+    rgba(8, 11, 16, 0.65) 50%,
     transparent 100%
   );
-  --tovu-rain-glyph: #8EB7C4;
-  --tovu-rain-glyph-muted: #5A7D8C;
-  --tovu-rain-accent: #8CE0BD;
-  --tovu-rain-active: #8AFFCD;
+  --tovu-rain-glyph: #8eb7c4;
+  --tovu-rain-glyph-muted: #5a7d8c;
+  --tovu-rain-accent: #8ce0bd;
+  --tovu-rain-active: #8affcd;
 }
 
 html.light,
 html[data-theme="light"] {
-  --tovu-hero-bg: #F5F3EE;
+  color-scheme: light;
+  --tovu-bg-canvas: #f5f3ee;
+  --tovu-bg-surface: #ece9e1;
+  --tovu-bg-elevated: #ffffff;
+  --tovu-bg-inset: #e4e0d6;
+  --tovu-border-hairline: rgba(17, 22, 27, 0.11);
+  --tovu-border-strong: rgba(17, 22, 27, 0.24);
+  --tovu-text-primary: #11161b;
+  --tovu-text-secondary: #334155;
+  --tovu-text-muted: #52606d;
+  --tovu-accent: #0f766e;
+  --tovu-accent-strong: #0d9488;
+  --tovu-accent-soft: rgba(15, 118, 110, 0.1);
+  --tovu-accent-border: rgba(15, 118, 110, 0.26);
+  --tovu-accent-ink: #ffffff;
+
+  --tovu-hero-bg: #f5f3ee;
   --tovu-hero-scrim-desktop: radial-gradient(
-    ellipse at 22% 50%,
-    rgba(245, 243, 238, 0.92) 0%,
-    rgba(245, 243, 238, 0.72) 42%,
-    rgba(245, 243, 238, 0.22) 78%,
+    ellipse at 24% 50%,
+    rgba(245, 243, 238, 0.94) 0%,
+    rgba(245, 243, 238, 0.74) 42%,
+    rgba(245, 243, 238, 0.24) 78%,
     rgba(245, 243, 238, 0.08) 100%
   );
   --tovu-hero-scrim-mobile: radial-gradient(
     ellipse at 45% 46%,
-    rgba(245, 243, 238, 0.90) 0%,
-    rgba(245, 243, 238, 0.66) 55%,
+    rgba(245, 243, 238, 0.92) 0%,
+    rgba(245, 243, 238, 0.68) 55%,
     rgba(245, 243, 238, 0.24) 100%
   );
   --tovu-hero-bottom-fade: linear-gradient(
     to top,
-    #F5F3EE 0%,
+    #f5f3ee 0%,
     rgba(245, 243, 238, 0.65) 50%,
     transparent 100%
   );
   --tovu-rain-glyph: #485662;
-  --tovu-rain-glyph-muted: #74828E;
-  --tovu-rain-accent: #0F766E;
-  --tovu-rain-active: #0D9488;
+  --tovu-rain-glyph-muted: #74828e;
+  --tovu-rain-accent: #0f766e;
+  --tovu-rain-active: #0d9488;
 }
 
 @layer base {
+  html {
+    font-family: var(--font-sans);
+    background-color: var(--tovu-bg-canvas);
+    color: var(--tovu-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
-    background-color: var(--color-background);
-    color: var(--color-on-surface);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--tovu-bg-canvas);
+    color: var(--tovu-text-primary);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.65;
+    transition: background-color 220ms ease, color 220ms ease;
   }
 }
 
-/* Custom Grids and Grid Graphics */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Custom Grids */
 .blueprint-overlay {
-  background-size: 20px 20px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-}
-
-.bento-card {
-  background: rgba(18, 20, 21, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 1.5rem;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.bento-card:hover {
-  border-color: rgba(195, 192, 255, 0.25);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
-  transform: translateY(-4px);
-}
-
-.glass-pill {
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  background: rgba(15, 17, 18, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-/* Keyframe Dash stroke animations */
-@keyframes dash {
-  to {
-    stroke-dashoffset: -40;
-  }
+  background-size: 24px 24px;
+  background-image:
+    linear-gradient(to right, var(--tovu-border-hairline) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--tovu-border-hairline) 1px, transparent 1px);
 }
 
 /* Scrollbar behaviors */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: var(--tovu-border-strong) transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -118,16 +142,24 @@ html[data-theme="light"] {
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--tovu-border-strong);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(195, 192, 255, 0.45);
+  background: var(--tovu-accent);
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

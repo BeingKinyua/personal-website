@@ -13,19 +13,19 @@ export const HeroContent: React.FC<HeroContentProps> = ({
   onOpenTovu,
 }) => {
   return (
-    <div className="lg:col-span-7 relative z-10 py-6">
-      {/* Tovu Identity & Eyebrow */}
+    <div className="lg:col-span-8 relative z-10 py-4 sm:py-6">
+      {/* Editorial Eyebrow */}
       <div
         data-hero-eyebrow
-        className="flex items-center gap-2.5 text-xs font-mono tracking-widest text-zinc-400 light:text-zinc-600 uppercase mb-6"
+        className="flex items-center gap-3 text-[13px] font-mono tracking-[0.14em] text-[var(--tovu-text-muted)] uppercase mb-7"
       >
-        <span className="text-teal-400 light:text-teal-700 font-semibold">TOVU</span>
-        <span aria-hidden="true" className="text-zinc-600 light:text-zinc-400">·</span>
-        <span>Digital Operating Environment</span>
+        <span className="text-[var(--tovu-accent)] font-semibold">Tovu</span>
+        <span aria-hidden="true" className="text-[var(--tovu-border-strong)]">·</span>
+        <span>Victor Kinyua</span>
       </div>
 
-      {/* Masked Line-by-Line Headline Reveal */}
-      <h1 className="text-4xl sm:text-6xl font-light tracking-tight text-white light:text-zinc-900 mb-8 font-mono leading-[1.1] text-balance">
+      {/* Monumental Fluid Display Headline */}
+      <h1 className="font-display font-semibold tracking-[-0.03em] text-[var(--tovu-text-primary)] mb-8 leading-[0.98] text-[clamp(3rem,6.6vw,6.25rem)] text-balance">
         {HEADLINE_LINES.map((line) => (
           <span key={line} className="block overflow-hidden py-0.5">
             <span data-hero-line className="inline-block will-change-transform">
@@ -35,13 +35,21 @@ export const HeroContent: React.FC<HeroContentProps> = ({
         ))}
       </h1>
 
+      {/* Concise Human Introduction */}
+      <p
+        data-hero-description
+        className="text-[clamp(1.0625rem,1.35vw,1.25rem)] text-[var(--tovu-text-secondary)] max-w-xl leading-[1.6] mb-10 font-normal"
+      >
+        A living digital environment for distributed software systems, applied intelligence, technical writing, and active research.
+      </p>
+
       {/* Primary CTA Actions */}
-      <div data-hero-cta className="flex flex-wrap items-center gap-3.5">
+      <div data-hero-cta className="flex flex-wrap items-center gap-4">
         <button
           id="hero-explore-work-btn"
           type="button"
           onClick={() => onNavigate("work")}
-          className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-white text-black light:bg-zinc-900 light:text-white font-medium text-xs sm:text-sm tracking-wide transition-all duration-200 hover:bg-zinc-200 light:hover:bg-zinc-800 hover:shadow-[0_0_20px_rgba(255,255,255,0.25)] light:hover:shadow-[0_6px_20px_rgba(15,23,42,0.18)] active:scale-95 cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080B10]"
+          className="group min-h-[48px] inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-[var(--tovu-text-primary)] text-[var(--tovu-bg-canvas)] font-medium text-[15px] tracking-tight transition-all duration-200 hover:opacity-90 active:scale-[0.98] cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tovu-hero-bg)]"
         >
           <span>Explore Work</span>
           <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
@@ -51,9 +59,9 @@ export const HeroContent: React.FC<HeroContentProps> = ({
           id="hero-ask-tovu-btn"
           type="button"
           onClick={onOpenTovu}
-          className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-teal-500/12 hover:bg-teal-500/20 border border-teal-400/30 text-teal-200 light:bg-teal-700/10 light:hover:bg-teal-700/15 light:border-teal-700/25 light:text-teal-800 font-mono text-xs sm:text-sm tracking-wide transition-all duration-200 hover:shadow-[0_0_20px_rgba(140,224,189,0.22)] active:scale-95 cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080B10]"
+          className="group min-h-[48px] inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-[var(--tovu-accent-soft)] hover:bg-[var(--tovu-accent)] border border-[var(--tovu-accent-border)] text-[var(--tovu-accent)] hover:text-[var(--tovu-accent-ink)] font-medium text-[15px] tracking-tight transition-all duration-200 active:scale-[0.98] cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--tovu-hero-bg)]"
         >
-          <Sparkles className="w-4 h-4 text-teal-300 light:text-teal-700" />
+          <Sparkles className="w-4 h-4" />
           <span>Ask Tovu</span>
         </button>
       </div>

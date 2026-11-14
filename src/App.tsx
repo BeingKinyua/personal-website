@@ -6,7 +6,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 // Shell Components
 import { SystemEntry } from "./components/shell/SystemEntry";
 import { OSNavigation } from "./components/shell/OSNavigation";
-import { OSStatus } from "./components/shell/OSStatus";
 import { CommandCenter } from "./components/shell/CommandCenter";
 import { OSFooter } from "./components/shell/OSFooter";
 
@@ -28,10 +27,14 @@ import { ProjectReader } from "./components/work/ProjectReader";
 
 // Hooks
 import { useCommandCenter } from "./hooks/useCommandCenter";
+import { useTheme } from "./hooks/useTheme";
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function App() {
+  // Theme state synced with html[data-theme] and localStorage
+  const { theme, toggleTheme } = useTheme();
+
   // System Entry Boot state
   const [hasEnteredSystem, setHasEnteredSystem] = useState<boolean>(() => {
     return (
@@ -78,7 +81,6 @@ export default function App() {
         return;
       }
 
-      // Root or generic section anchor
       if (!path.startsWith("/journal") && !path.startsWith("/work")) {
         setSelectedArticleSlug(null);
         setSelectedProjectSlug(null);
@@ -115,12 +117,12 @@ export default function App() {
     if (!hasEnteredSystem) return;
 
     const lenis = new Lenis({
-      duration: 1.1,
+      duration: 1.05,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       gestureOrientation: "vertical",
       smoothWheel: true,
-      wheelMultiplier: 1.1,
+      wheelMultiplier: 1.05,
       prevent: (node) => {
         return (
           node instanceof HTMLElement &&
@@ -142,10 +144,9 @@ export default function App() {
     lenis.on("scroll", ScrollTrigger.update);
     gsap.ticker.add(raf);
 
-    // Active section spy on scroll
     const sections = ["home", "work", "journal", "lab", "knowledge", "about", "contact"];
     const handleScrollSpy = () => {
-      const scrollY = window.scrollY + 250;
+      const scrollY = window.scrollY + 260;
       for (const sectionId of sections) {
         const el = document.getElementById(sectionId);
         if (el) {
@@ -191,7 +192,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07080a] text-zinc-100 font-sans selection:bg-blue-500/30 selection:text-blue-200 antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--tovu-bg-canvas)] text-[var(--tovu-text-primary)] font-sans selection:bg-[var(--tovu-accent-soft)] selection:text-[var(--tovu-accent)] antialiased overflow-x-hidden transition-colors duration-200">
       {/* State A: Boot / System Entry Screen */}
       {!hasEnteredSystem && (
         <SystemEntry onEnter={handleEnterSystem} />
@@ -200,7 +201,7 @@ export default function App() {
       {/* State B: Full Tovu Environment */}
       {hasEnteredSystem && (
         <>
-          {/* Floating Navigation Pill */}
+          {/* Refined Floating Navigation */}
           <OSNavigation
             activeSection={activeSection}
             onNavigate={scrollToSection}
@@ -209,66 +210,47 @@ export default function App() {
               setTovuInitialPrompt("");
               setIsTovuOpen(true);
             }}
-            onOpenDoom={() => {
-              setTovuInitialPrompt("");
-              setIsTovuOpen(true);
-            }}
+            theme={theme}
+            onToggleTheme={toggleTheme}
             lenisRef={lenisRef}
           />
 
-          {/* System Telemetry Status Bar */}
-          <OSStatus /> 
-
-          {/* Main Operating Environment Content */}
+          {/* Main Content */}
           <main id="tovu-main-content">
-            {/* 1. Home / System Overview */}
             <SystemOverview
               onNavigate={scrollToSection}
               onOpenTovu={() => {
                 setTovuInitialPrompt("");
                 setIsTovuOpen(true);
               }}
-              onOpenDoom={() => {
-                setTovuInitialPrompt("");
-                setIsTovuOpen(true);
-              }}
+              theme={theme}
             />
 
-            {/* 2. Work Showcase Module */}
             <WorkSection
               selectedSlug={selectedProjectSlug}
               onSelectProject={handleOpenProject}
             />
 
-            {/* 3. Journal Editorial Archive Module */}
             <JournalSection
               selectedSlug={selectedArticleSlug}
               onSelectArticle={handleOpenArticle}
             />
 
-            {/* 4. Laboratory R&D Sandbox Module */}
             <LabSection />
 
-            {/* 5. Knowledge Concept Lattice Module */}
             <KnowledgeSection
-              onOpenProject={(slug) => {
-                handleOpenProject(slug);
-              }}
-              onOpenArticle={(slug) => {
-                handleOpenArticle(slug);
-              }}
+              onOpenProject={handleOpenProject}
+              onOpenArticle={handleOpenArticle}
             />
 
-            {/* 6. About Identity & Journey Module */}
             <AboutSection
               onNavigateToContact={() => scrollToSection("contact")}
             />
 
-            {/* 7. Contact Direct Channels Module */}
             <ContactSection />
           </main>
 
-          {/* Operating System Footer */}
+          {/* Editorial Footer */}
           <OSFooter
             onScrollToTop={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             onNavigate={scrollToSection}
@@ -279,14 +261,9 @@ export default function App() {
             isOpen={isCmdOpen}
             onClose={closeCmd}
             onNavigate={scrollToSection}
-            onOpenProject={(slug) => {
-              handleOpenProject(slug);
-            }}
-            onOpenArticle={(slug) => {
-              handleOpenArticle(slug);
-            }}
+            onOpenProject={handleOpenProject}
+            onOpenArticle={handleOpenArticle}
             onAskTovu={handleAskTovuWithPrompt}
-            onAskDoom={handleAskTovuWithPrompt}
             lenisRef={lenisRef}
           />
 
@@ -296,12 +273,8 @@ export default function App() {
             initialPrompt={tovuInitialPrompt}
             onClose={() => setIsTovuOpen(false)}
             onNavigate={scrollToSection}
-            onOpenProject={(slug) => {
-              handleOpenProject(slug);
-            }}
-            onOpenArticle={(slug) => {
-              handleOpenArticle(slug);
-            }}
+            onOpenProject={handleOpenProject}
+            onOpenArticle={handleOpenArticle}
             lenisRef={lenisRef}
           />
 

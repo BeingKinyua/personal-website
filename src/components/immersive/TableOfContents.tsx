@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { List, ChevronRight, X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 
 export interface ToCItem {
   id: string;
@@ -19,12 +19,19 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
   items,
   containerRef,
   isOpen,
-  onToggle,
   onClose,
 }) => {
   const [activeId, setActiveId] = useState<string>(items[0]?.id || "");
 
-  // Detect active section based on reader scroller position
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     const scroller = containerRef.current;
     if (!scroller || items.length === 0) return;
@@ -69,65 +76,70 @@ export const TableOfContents: React.FC<TableOfContentsProps> = ({
     }
   };
 
-  if (items.length === 0) return null;
+  if (items.length === 0 || !isOpen) return null;
 
   return (
-    <>
-      {/* Popover / Drawer for Table of Contents */}
-      {isOpen && (
-        <div
-          id="reader-toc-backdrop"
-          className="fixed inset-0 z-[115] bg-black/40 backdrop-blur-sm flex items-start justify-end p-4 sm:p-6"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) onClose();
-          }}
-        >
-          <div
-            id="reader-toc-panel"
-            className="w-full max-w-xs mt-14 rounded-2xl border border-white/15 bg-[#0e1014] p-4 shadow-2xl animate-fadeIn"
+    <div
+      id="reader-toc-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reader-toc-title"
+      className="fixed inset-0 z-[115] bg-[var(--tovu-bg-overlay)] backdrop-blur-sm flex items-start justify-end p-4 sm:p-6"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        id="reader-toc-panel"
+        className="w-full max-w-xs mt-14 rounded-2xl border border-[var(--tovu-border-strong)] bg-[var(--tovu-bg-elevated)] p-4 shadow-2xl text-[var(--tovu-text-primary)]"
+      >
+        <div className="flex items-center justify-between pb-3 border-b border-[var(--tovu-border-hairline)] mb-3">
+          <span
+            id="reader-toc-title"
+            className="text-[13px] font-mono uppercase tracking-[0.12em] text-[var(--tovu-text-muted)]"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-              <span className="text-xs font-mono uppercase tracking-widest text-zinc-400">
-                TABLE OF CONTENTS
-              </span>
-              <button
-                onClick={onClose}
-                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <nav className="space-y-1 max-h-[60vh] overflow-y-auto scrollbar-thin pr-1">
-              {items.map((item) => {
-                const isActive = activeId === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => scrollToItem(item.id)}
-                    className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-mono transition-all flex items-center justify-between group cursor-pointer ${
-                      item.level === 3 ? "pl-5 text-[11px]" : ""
-                    } ${
-                      isActive
-                        ? "bg-blue-500/15 text-blue-300 border border-blue-500/30 font-medium"
-                        : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent"
-                    }`}
-                  >
-                    <span className="truncate pr-2">{item.label}</span>
-                    <ChevronRight
-                      className={`w-3 h-3 transition-transform ${
-                        isActive
-                          ? "text-blue-400 translate-x-0.5"
-                          : "text-zinc-600 group-hover:text-zinc-400 group-hover:translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
+            Table of Contents
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close table of contents"
+            className="w-10 h-10 inline-flex items-center justify-center rounded-xl text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)] hover:bg-[var(--tovu-bg-inset)] transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-      )}
-    </>
+
+        <nav aria-label="Article sections" className="space-y-1 max-h-[60vh] overflow-y-auto scrollbar-thin pr-1">
+          {items.map((item) => {
+            const isActive = activeId === item.id;
+            return (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => scrollToItem(item.id)}
+                aria-current={isActive ? "location" : undefined}
+                className={`w-full min-h-[40px] text-left px-3 py-2 rounded-xl text-[14px] transition-colors flex items-center justify-between group cursor-pointer ${
+                  item.level === 3 ? "pl-6 text-[13px]" : ""
+                } ${
+                  isActive
+                    ? "bg-[var(--tovu-accent-subtle)] text-[var(--tovu-text-primary)] border border-[var(--tovu-accent-border)] font-medium"
+                    : "text-[var(--tovu-text-secondary)] hover:text-[var(--tovu-text-primary)] hover:bg-[var(--tovu-bg-inset)] border border-transparent"
+                }`}
+              >
+                <span className="truncate pr-2">{item.label}</span>
+                <ChevronRight
+                  className={`w-3.5 h-3.5 shrink-0 transition-transform ${
+                    isActive
+                      ? "text-[var(--tovu-accent)] translate-x-0.5"
+                      : "text-[var(--tovu-text-muted)] group-hover:text-[var(--tovu-text-primary)] group-hover:translate-x-0.5"
+                  }`}
+                />
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </div>
   );
 };

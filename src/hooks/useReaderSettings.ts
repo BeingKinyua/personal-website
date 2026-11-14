@@ -52,30 +52,38 @@ export function useReaderSettings() {
     setSettings(DEFAULT_SETTINGS);
   };
 
-  // Utility classes mapping
   const fontSizeClasses = {
-    small: "text-sm sm:text-base leading-relaxed",
-    medium: "text-base sm:text-lg leading-relaxed",
-    large: "text-lg sm:text-xl leading-relaxed",
+    small: "text-[16px] sm:text-[17px] leading-[1.7]",
+    medium: "text-[17px] sm:text-[19px] leading-[1.75]",
+    large: "text-[19px] sm:text-[21px] leading-[1.8]",
   }[settings.fontSize];
 
   const contentWidthClasses = {
-    focused: "max-w-[62ch]",
-    comfortable: "max-w-[72ch]",
-    wide: "max-w-[86ch]",
+    focused: "max-w-[60ch]",
+    comfortable: "max-w-[68ch]",
+    wide: "max-w-[82ch]",
   }[settings.contentWidth];
 
   const themeClasses = {
-    dark: "bg-[#08090b] text-zinc-200 selection:bg-blue-500/30 selection:text-blue-200",
+    dark: "bg-[#080B10] text-slate-200 selection:bg-teal-400/25 selection:text-teal-200",
     obsidian: "bg-[#000000] text-zinc-200 selection:bg-white/20 selection:text-white",
-    paper: "bg-[#0d0f14] text-[#e3e6eb] selection:bg-amber-500/30 selection:text-amber-200",
+    paper: "bg-[#F5F3EE] text-[#1E252B] selection:bg-teal-700/15 selection:text-teal-900",
   }[settings.theme];
 
   const headerThemeClasses = {
-    dark: "bg-[#0a0c0f]/90 border-white/10 text-white",
-    obsidian: "bg-[#000000]/95 border-white/10 text-white",
-    paper: "bg-[#101318]/90 border-white/10 text-[#f0f2f5]",
+    dark: "bg-[#0B0F16]/90 border-white/10 text-slate-100",
+    obsidian: "bg-[#050505]/95 border-white/10 text-white",
+    paper: "bg-[#F5F3EE]/92 border-zinc-900/10 text-[#11161B]",
   }[settings.theme];
+
+  const isPaper = settings.theme === "paper";
+  const headingClass = isPaper ? "text-[#11161B]" : "text-white";
+  const bodyTextClass = isPaper ? "text-[#2A333C]" : "text-slate-300";
+  const mutedTextClass = isPaper ? "text-[#52606D]" : "text-slate-400";
+  const borderClass = isPaper ? "border-zinc-900/12" : "border-white/10";
+  const surfaceClass = isPaper ? "bg-[#ECE9E1] border-zinc-900/12" : "bg-[#0F1319] border-white/10";
+  const insetClass = isPaper ? "bg-[#E4E0D6] border-zinc-900/12 text-[#1E252B]" : "bg-[#06090E] border-white/10 text-slate-200";
+  const accentTextClass = isPaper ? "text-teal-700" : "text-[#8CE0BD]";
 
   return {
     settings,
@@ -85,5 +93,12 @@ export function useReaderSettings() {
     contentWidthClasses,
     themeClasses,
     headerThemeClasses,
+    headingClass,
+    bodyTextClass,
+    mutedTextClass,
+    borderClass,
+    surfaceClass,
+    insetClass,
+    accentTextClass,
   };
 }

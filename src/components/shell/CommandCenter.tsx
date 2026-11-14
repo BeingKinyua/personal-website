@@ -10,7 +10,7 @@ import {
   Network,
   Sparkles,
   Compass,
-  CornerDownLeft
+  CornerDownLeft,
 } from "lucide-react";
 import { searchTovu, searchTovuHybrid, SearchResultItem } from "../../services/searchService";
 import { useScrollLock } from "../../hooks/useScrollLock";
@@ -76,14 +76,17 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
     }
   }, [isOpen]);
 
-  // Hybrid search execution with debounce
   useEffect(() => {
     let cancelled = false;
     const rawResults = searchTovu(query);
     if (activeFilter === "ALL") {
       setResults(rawResults);
     } else {
-      setResults(rawResults.filter((r) => r.module === activeFilter || r.module === "TOVU" || r.module === "DOOM"));
+      setResults(
+        rawResults.filter(
+          (r) => r.module === activeFilter || r.module === "TOVU" || r.module === "DOOM"
+        )
+      );
     }
     setSelectedIndex(0);
 
@@ -94,7 +97,11 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             if (activeFilter === "ALL") {
               setResults(hybridResults);
             } else {
-              setResults(hybridResults.filter((r) => r.module === activeFilter || r.module === "TOVU" || r.module === "DOOM"));
+              setResults(
+                hybridResults.filter(
+                  (r) => r.module === activeFilter || r.module === "TOVU" || r.module === "DOOM"
+                )
+              );
             }
           }
         });
@@ -141,20 +148,20 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
   const getModuleIcon = (module: string) => {
     switch (module) {
       case "WORK":
-        return <FolderKanban className="w-3.5 h-3.5 text-blue-400" />;
+        return <FolderKanban className="w-4 h-4 text-[var(--tovu-accent)]" />;
       case "JOURNAL":
-        return <BookOpen className="w-3.5 h-3.5 text-amber-400" />;
+        return <BookOpen className="w-4 h-4 text-[var(--tovu-accent)]" />;
       case "LAB":
-        return <FlaskConical className="w-3.5 h-3.5 text-emerald-400" />;
+        return <FlaskConical className="w-4 h-4 text-[var(--tovu-accent)]" />;
       case "KNOWLEDGE":
-        return <Network className="w-3.5 h-3.5 text-indigo-400" />;
+        return <Network className="w-4 h-4 text-[var(--tovu-accent)]" />;
       case "NAVIGATION":
-        return <Compass className="w-3.5 h-3.5 text-zinc-400" />;
+        return <Compass className="w-4 h-4 text-[var(--tovu-text-muted)]" />;
       case "TOVU":
       case "DOOM":
-        return <Sparkles className="w-3.5 h-3.5 text-blue-400" />;
+        return <Sparkles className="w-4 h-4 text-[var(--tovu-accent)]" />;
       default:
-        return <Command className="w-3.5 h-3.5 text-zinc-400" />;
+        return <Command className="w-4 h-4 text-[var(--tovu-text-muted)]" />;
     }
   };
 
@@ -164,104 +171,123 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
     <div
       id="command-center-modal"
       data-lenis-prevent="true"
-      className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-black/75 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-24 px-4 bg-black/75 backdrop-blur-md"
       onClick={onClose}
     >
       <div
         id="command-center-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search and command palette"
         data-lenis-prevent="true"
-        className="relative w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0d0f11] shadow-[0_25px_70px_rgba(0,0,0,0.8)] overflow-hidden text-zinc-100 flex flex-col max-h-[78vh]"
+        className="relative w-full max-w-2xl rounded-2xl border border-[var(--tovu-border-strong)] bg-[var(--tovu-bg-canvas)] shadow-2xl overflow-hidden text-[var(--tovu-text-primary)] flex flex-col max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        {/* Search input bar */}
-        <div className="flex items-center px-4 py-3.5 border-b border-white/10 gap-3">
-          <Search className="w-4 h-4 text-zinc-400 shrink-0" />
+        {/* Search Input */}
+        <div className="flex items-center px-5 py-4 border-b border-[var(--tovu-border-hairline)] gap-3 bg-[var(--tovu-bg-surface)]">
+          <Search className="w-5 h-5 text-[var(--tovu-text-muted)] shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
             id="command-center-input"
             type="text"
-            placeholder="Search Tovu systems, essays, experiments, or ask Tovu..."
+            placeholder="Search systems, essays, experiments, or ask Tovu..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-transparent text-sm sm:text-base font-normal text-white placeholder-zinc-500 focus:outline-none tracking-wide"
+            className="w-full bg-transparent text-base text-[var(--tovu-text-primary)] placeholder-[var(--tovu-text-muted)] focus:outline-none"
           />
           {query && (
             <button
+              type="button"
               onClick={() => setQuery("")}
-              className="text-zinc-500 hover:text-white p-1 rounded transition-colors"
+              aria-label="Clear search"
+              className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 text-[10px] font-mono text-zinc-400 bg-white/5 border border-white/10 rounded">
+          <kbd className="hidden sm:inline-flex items-center px-2 py-1 text-[12px] font-mono text-[var(--tovu-text-muted)] bg-[var(--tovu-bg-elevated)] border border-[var(--tovu-border-hairline)] rounded-md">
             ESC
           </kbd>
         </div>
 
-        {/* Filter categories pills */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-white/5 overflow-x-auto scrollbar-none bg-[#090b0d]/50">
-          {filterTabs.map((tab) => (
-            <button
-              key={tab}
-              id={`cmd-filter-${tab.toLowerCase()}`}
-              onClick={() => setActiveFilter(tab)}
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono tracking-wider transition-all cursor-pointer ${
-                activeFilter === tab
-                  ? "bg-white/15 text-white font-medium shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        {/* Filter Tabs */}
+        <div
+          role="tablist"
+          aria-label="Filter search results"
+          className="flex items-center gap-1.5 px-4 py-2.5 border-b border-[var(--tovu-border-hairline)] overflow-x-auto scrollbar-none bg-[var(--tovu-bg-surface)]/70"
+        >
+          {filterTabs.map((tab) => {
+            const isActive = activeFilter === tab;
+            return (
+              <button
+                key={tab}
+                id={`cmd-filter-${tab.toLowerCase()}`}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveFilter(tab)}
+                className={`min-h-[36px] px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                  isActive
+                    ? "bg-[var(--tovu-text-primary)] text-[var(--tovu-bg-canvas)]"
+                    : "text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)]"
+                }`}
+              >
+                {tab === "ALL" ? "All" : tab.charAt(0) + tab.slice(1).toLowerCase()}
+              </button>
+            );
+          })}
         </div>
 
         {/* Results List */}
         <div
           ref={resultsContainerRef}
           id="cmd-results-list"
+          role="listbox"
           data-lenis-prevent="true"
           tabIndex={0}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 space-y-1 divide-y divide-white/[0.03] scrollbar-thin outline-none"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2.5 space-y-1 scrollbar-thin outline-none"
           style={{
             WebkitOverflowScrolling: "touch",
             overscrollBehavior: "contain",
           }}
         >
           {results.length === 0 ? (
-            <div className="py-12 text-center text-zinc-500 font-mono text-xs">
-              No matching records located in Tovu. Try another search or ask Tovu.
+            <div className="py-12 px-4 text-center text-[var(--tovu-text-muted)] text-[15px]">
+              No matching records found. Try another keyword or ask Tovu.
             </div>
           ) : (
             results.map((item, index) => {
               const isSelected = index === selectedIndex;
               return (
-                <div
+                <button
                   key={item.id}
                   id={`cmd-result-${index}`}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-all ${
+                  className={`w-full text-left flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)] ${
                     isSelected
-                      ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-                      : "text-zinc-300 hover:bg-white/[0.04]"
+                      ? "bg-[var(--tovu-accent-soft)] border-[var(--tovu-accent-border)] text-[var(--tovu-text-primary)]"
+                      : "border-transparent text-[var(--tovu-text-secondary)] hover:bg-[var(--tovu-bg-surface)]"
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-1.5 rounded-lg bg-white/5 border border-white/5 shrink-0">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="p-2 rounded-lg bg-[var(--tovu-bg-surface)] border border-[var(--tovu-border-hairline)] shrink-0">
                       {getModuleIcon(item.module)}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium tracking-wide truncate">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[15px] font-medium text-[var(--tovu-text-primary)] truncate">
                           {item.title}
                         </span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded border border-white/10 bg-white/5 text-zinc-400 shrink-0">
+                        <span className="text-[12px] font-mono text-[var(--tovu-text-muted)] shrink-0">
                           {item.module}
                         </span>
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                      <p className="text-[13px] text-[var(--tovu-text-muted)] truncate mt-0.5">
                         {item.subtitle}
                       </p>
                     </div>
@@ -269,34 +295,39 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
 
                   <div className="flex items-center gap-2 pl-3 shrink-0">
                     {isSelected && (
-                      <span className="hidden sm:inline-flex items-center text-[10px] font-mono text-zinc-400 gap-1">
-                        Select <CornerDownLeft className="w-3 h-3" />
+                      <span className="hidden sm:inline-flex items-center text-[13px] font-mono text-[var(--tovu-accent)] gap-1">
+                        Open <CornerDownLeft className="w-3.5 h-3.5" />
                       </span>
                     )}
-                    <ArrowRight className="w-3.5 h-3.5 text-zinc-500" />
+                    <ArrowRight className="w-4 h-4 text-[var(--tovu-text-muted)]" />
                   </div>
-                </div>
+                </button>
               );
             })
           )}
         </div>
 
-        {/* Footer shortcuts hint */}
-        <div className="px-4 py-2.5 bg-[#090a0c] border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+        {/* Footer Hints */}
+        <div className="px-5 py-3 bg-[var(--tovu-bg-surface)] border-t border-[var(--tovu-border-hairline)] flex items-center justify-between text-[13px] font-mono text-[var(--tovu-text-muted)]">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-white/5 rounded border border-white/10 text-[10px]">↑↓</kbd> navigate
+            <span className="flex items-center gap-1.5">
+              <kbd className="px-1.5 py-0.5 bg-[var(--tovu-bg-elevated)] rounded border border-[var(--tovu-border-hairline)] text-[12px]">
+                ↑↓
+              </kbd>
+              navigate
             </span>
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-white/5 rounded border border-white/10 text-[10px]">↵</kbd> select
+            <span className="flex items-center gap-1.5">
+              <kbd className="px-1.5 py-0.5 bg-[var(--tovu-bg-elevated)] rounded border border-[var(--tovu-border-hairline)] text-[12px]">
+                ↵
+              </kbd>
+              open
             </span>
-            <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-white/5 rounded border border-white/10 text-[10px]">esc</kbd> close
+            <span className="flex items-center gap-1.5">
+              <kbd className="px-1.5 py-0.5 bg-[var(--tovu-bg-elevated)] rounded border border-[var(--tovu-border-hairline)] text-[12px]">
+                esc
+              </kbd>
+              close
             </span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1 text-zinc-400">
-            <Sparkles className="w-3 h-3 text-blue-400" />
-            <span>AI Ready</span>
           </div>
         </div>
       </div>

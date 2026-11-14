@@ -1,152 +1,132 @@
 import React from "react";
-import { User, Cpu, Compass, Layers, CheckCircle2, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { TIMELINE_MILESTONES } from "../../data/timeline";
-import { TextReveal } from "../motion/TextReveal";
-import { WordReveal } from "../motion/WordReveal";
-import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 interface AboutSectionProps {
   onNavigateToContact: () => void;
 }
 
+const TENETS = [
+  {
+    number: "01",
+    title: "Systems Over Silos",
+    body: "A feature never exists in isolation. Every product sits inside a feedback loop connecting hardware latency, storage write amplification, and human cognitive flow.",
+  },
+  {
+    number: "02",
+    title: "Determinism Before Generation",
+    body: "Never trust an unconstrained model to perform a state mutation that belongs to a compiler, a finite state machine, or a strict schema boundary.",
+  },
+  {
+    number: "03",
+    title: "Relentless Restraint",
+    body: "Quality comes from what you refuse to add. Clear defaults, disciplined typographic scale, and thoughtful architecture outlast superficial embellishment.",
+  },
+];
+
 export const AboutSection: React.FC<AboutSectionProps> = ({ onNavigateToContact }) => {
   return (
-    <section id="about" className="relative py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100 overflow-hidden">
-      {/* Architectural Background Typography Parallax */}
-      <ParallaxBackgroundText className="text-[16vw] absolute top-6 right-6 z-0" triggerId="about">
-        ABOUT
-      </ParallaxBackgroundText>
-
+    <section
+      id="about"
+      className="relative py-24 sm:py-32 px-5 sm:px-8 lg:px-10 max-w-7xl mx-auto text-[var(--tovu-text-primary)] border-t border-[var(--tovu-border-hairline)]"
+    >
       {/* Section Header */}
-      <div className="mb-16 relative z-10">
-        
-        <TextReveal
-          as="h2"
-          trigger="scroll"
-          duration={0.9}
-          className="text-3xl sm:text-5xl font-mono font-medium text-white tracking-tight"
-        >
+      <div className="mb-16 max-w-3xl">
+        <p className="text-[13px] font-mono tracking-[0.14em] uppercase text-[var(--tovu-accent)] mb-3">
+          05 · About
+        </p>
+        <h2 className="font-display font-semibold tracking-[-0.025em] text-[var(--tovu-text-primary)] leading-[1.06] text-[clamp(2.25rem,4.4vw,4rem)]">
           Systems. Curiosity. Craft.
-        </TextReveal>
+        </h2>
       </div>
 
-      {/* 1. WHO & HOW I THINK */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-20">
+      {/* 1. Narrative & Tenets */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 mb-24">
         <div className="lg:col-span-6 space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-[#0d0f12] p-8 space-y-4">
-            <span className="text-xs font-mono text-blue-400 uppercase tracking-wider block">
-              01 // WHO I AM
-            </span>
-            <h3 className="text-2xl font-mono text-white">
-              Software Engineer, AI Builder, Data Thinker
-            </h3>
-            <p className="text-sm text-zinc-300 leading-relaxed">
-              I am Victor Kinyua. I am drawn to foundational technical problems: How do we construct distributed software that remains correct when network partitions strike? How do we build AI systems bounded by deterministic state machines rather than fragile prompt alchemy? And how do we design tools that respect human cognitive flow?
+          <p className="text-[13px] font-mono uppercase tracking-wider text-[var(--tovu-text-muted)]">
+            Who I Am
+          </p>
+          <h3 className="font-display text-2xl sm:text-3xl font-semibold text-[var(--tovu-text-primary)] leading-snug">
+            Software Engineer, AI Builder, Data Thinker
+          </h3>
+          <div className="space-y-5 text-[17px] sm:text-[18px] text-[var(--tovu-text-secondary)] leading-[1.7] max-w-[62ch]">
+            <p>
+              I am Victor Kinyua. I am drawn to foundational technical questions: how to build distributed software that stays correct under network partitions, how to bound AI systems with deterministic state machines, and how to design interfaces that respect human attention.
             </p>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              My work spans low-level infrastructure in Go and Rust, high-velocity machine learning computer vision in PyTorch, and high-contrast digital operating environments in TypeScript and React.
+            <p className="text-[var(--tovu-text-muted)]">
+              My work spans low-level infrastructure in Go and Rust, applied computer vision in PyTorch, and expressive software environments in TypeScript and React.
             </p>
           </div>
         </div>
 
         <div className="lg:col-span-6 space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-[#0d0f12] p-8 space-y-4">
-            <span className="text-xs font-mono text-blue-400 uppercase tracking-wider block">
-              02 // HOW I THINK
-            </span>
-            <h3 className="text-2xl font-mono text-white">
-              The Three Core Tenets
-            </h3>
-            <div className="space-y-4 pt-2">
-              <div className="flex gap-3">
-                <span className="w-6 h-6 rounded-full bg-blue-500/15 text-blue-400 font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 border border-blue-500/30">
-                  1
+          <p className="text-[13px] font-mono uppercase tracking-wider text-[var(--tovu-text-muted)]">
+            How I Think
+          </p>
+          <div className="divide-y divide-[var(--tovu-border-hairline)] border-y border-[var(--tovu-border-hairline)]">
+            {TENETS.map((tenet) => (
+              <div key={tenet.number} className="py-6 flex gap-5">
+                <span className="font-mono text-sm font-semibold text-[var(--tovu-accent)] tabular-nums shrink-0 pt-1">
+                  {tenet.number}
                 </span>
-                <div>
-                  <h4 className="text-sm font-medium text-white">Systems Over Silos</h4>
-                  <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
-                    A feature does not exist alone. Everything is a feedback loop connecting hardware latency, database write amplification, and human ergonomics.
+                <div className="space-y-1.5">
+                  <h4 className="font-display text-lg sm:text-xl font-semibold text-[var(--tovu-text-primary)]">
+                    {tenet.title}
+                  </h4>
+                  <p className="text-base text-[var(--tovu-text-secondary)] leading-[1.65]">
+                    {tenet.body}
                   </p>
                 </div>
               </div>
-
-              <div className="flex gap-3">
-                <span className="w-6 h-6 rounded-full bg-blue-500/15 text-blue-400 font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 border border-blue-500/30">
-                  2
-                </span>
-                <div>
-                  <h4 className="text-sm font-medium text-white">Determinism Before Generation</h4>
-                  <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
-                    Never trust an unconstrained LLM to execute a state mutation that can be governed by a compiler, a finite state machine, or a strict schema validator.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <span className="w-6 h-6 rounded-full bg-blue-500/15 text-blue-400 font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 border border-blue-500/30">
-                  3
-                </span>
-                <div>
-                  <h4 className="text-sm font-medium text-white">Relentless Restraint</h4>
-                  <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
-                    Quality comes from what you refuse to add. Clean defaults, mathematical typographic scale, and zero fluff outperform superficial embellishment.
-                  </p>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* 2. THE JOURNEY (Animated Milestone Timeline) */}
+      {/* 2. Experience & Milestones */}
       <div className="mb-20">
-        <div className="flex items-center gap-2 mb-8">
-          <span className="text-xs font-mono text-blue-400 uppercase tracking-widest">
-            03 // THE JOURNEY &amp; MILESTONES
-          </span>
-        </div>
+        <p className="text-[13px] font-mono uppercase tracking-wider text-[var(--tovu-text-muted)] mb-8">
+          Path &amp; Milestones
+        </p>
 
-        <div className="relative border-l border-white/10 ml-4 sm:ml-8 pl-6 sm:pl-10 space-y-12">
+        <div className="divide-y divide-[var(--tovu-border-hairline)] border-y border-[var(--tovu-border-hairline)]">
           {TIMELINE_MILESTONES.map((milestone, idx) => (
-            <div key={idx} className="relative group">
-              {/* Timeline node dot */}
-              <div className="absolute -left-[31px] sm:-left-[47px] top-1.5 w-3.5 h-3.5 rounded-full bg-[#0d0f12] border-2 border-blue-400 group-hover:bg-blue-400 group-hover:shadow-[0_0_12px_#3b82f6] transition-all" />
-
-              <div className="rounded-2xl border border-white/10 bg-[#0d0f12] p-6 sm:p-8 hover:border-white/20 transition-all space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base sm:text-lg font-mono font-semibold text-white">
-                      {milestone.role}
-                    </span>
-                    <span className="text-xs text-zinc-500 font-mono">
-                      @ {milestone.organization}
-                    </span>
-                  </div>
-
-                  <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/5">
-                    {milestone.year} · {milestone.quarter}
-                  </span>
+            <div
+              key={idx}
+              className="py-8 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8"
+            >
+              <div className="lg:col-span-4 space-y-1">
+                <div className="font-mono text-sm text-[var(--tovu-accent)] tabular-nums">
+                  {milestone.year} · {milestone.quarter}
                 </div>
+                <div className="font-display text-xl font-semibold text-[var(--tovu-text-primary)]">
+                  {milestone.role}
+                </div>
+                <div className="text-[15px] text-[var(--tovu-text-muted)]">
+                  {milestone.organization}
+                </div>
+              </div>
 
-                <p className="text-sm text-zinc-300 leading-relaxed">
+              <div className="lg:col-span-8 space-y-4">
+                <p className="text-[17px] text-[var(--tovu-text-secondary)] leading-[1.65]">
                   {milestone.description}
                 </p>
 
                 {milestone.impactHighlight && (
-                  <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 text-xs font-mono text-blue-300">
-                    <span className="text-blue-400 mr-2">IMPACT:</span>
+                  <p className="text-[15px] font-medium text-[var(--tovu-text-primary)]">
+                    <span className="font-mono text-[13px] uppercase tracking-wider text-[var(--tovu-accent)] mr-2.5">
+                      Impact
+                    </span>
                     {milestone.impactHighlight}
-                  </div>
+                  </p>
                 )}
 
-                <div className="flex flex-wrap gap-1.5 pt-2">
-                  {milestone.skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/5"
-                    >
-                      {skill}
-                    </span>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-mono text-[var(--tovu-text-muted)]">
+                  {milestone.skills.map((skill, sIdx) => (
+                    <React.Fragment key={skill}>
+                      {sIdx > 0 && <span aria-hidden="true">·</span>}
+                      <span>{skill}</span>
+                    </React.Fragment>
                   ))}
                 </div>
               </div>
@@ -155,26 +135,27 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ onNavigateToContact 
         </div>
       </div>
 
-      {/* 3. WHERE I'M GOING */}
-      <div className="rounded-3xl border border-white/10 bg-[#0c0e11] p-8 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-        <div className="space-y-2 max-w-xl">
-          <span className="text-xs font-mono text-emerald-400 uppercase tracking-widest">
-            04 // WHERE I'M GOING
-          </span>
-          <h3 className="text-xl sm:text-2xl font-mono text-white">
-            Solving the Next Generation of System Hard Problems
+      {/* 3. Forward Direction */}
+      <div className="rounded-2xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-surface)] p-8 sm:p-12 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+        <div className="space-y-3 max-w-2xl">
+          <p className="text-[13px] font-mono uppercase tracking-wider text-[var(--tovu-accent)]">
+            Looking Ahead
+          </p>
+          <h3 className="font-display text-2xl sm:text-3xl font-semibold text-[var(--tovu-text-primary)] leading-tight">
+            Exploring edge verification, responsive agent systems, and accessible computer vision
           </h3>
-          <p className="text-sm text-zinc-400 leading-relaxed">
-            Exploring zero-knowledge state verifiers at the edge, building autonomous agent networks with sub-millisecond dispatch cycles, and democratizing athletic performance scouting through computer vision.
+          <p className="text-[17px] text-[var(--tovu-text-secondary)] leading-[1.65]">
+            Focused on zero-knowledge verifiers at the edge, low-latency agent coordination, and bringing automated sports telemetry to grassroots athletes.
           </p>
         </div>
 
         <button
+          type="button"
           onClick={onNavigateToContact}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black font-medium text-xs font-mono tracking-wider hover:bg-zinc-200 transition-all cursor-pointer shrink-0 active:scale-95 shadow-lg"
+          className="min-h-[48px] inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-[var(--tovu-text-primary)] text-[var(--tovu-bg-canvas)] font-medium text-[15px] hover:opacity-90 transition-all cursor-pointer shrink-0 whitespace-nowrap active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
         >
-          <span>INITIATE CONTACT</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <span>Get in Touch</span>
+          <ArrowRight className="w-4 h-4" />
         </button>
       </div>
     </section>

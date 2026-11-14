@@ -1,10 +1,6 @@
 import React from "react";
-import { BookOpen, ArrowRight, Clock, Calendar, ArrowUpRight, FileCode2, Network, Shield } from "lucide-react";
+import { ArrowRight, ArrowUpRight, FileCode2, Shield } from "lucide-react";
 import { ARTICLES } from "../../data/articles";
-import { TextReveal } from "../motion/TextReveal";
-import { WordReveal } from "../motion/WordReveal";
-import { BlurReveal } from "../motion/BlurReveal";
-import { ParallaxBackgroundText } from "../motion/ParallaxBackgroundText";
 
 interface JournalSectionProps {
   selectedSlug: string | null;
@@ -12,118 +8,123 @@ interface JournalSectionProps {
 }
 
 export const JournalSection: React.FC<JournalSectionProps> = ({
-  selectedSlug,
-  onSelectArticle
+  selectedSlug: _selectedSlug,
+  onSelectArticle,
 }) => {
   return (
-    <section id="journal" className="relative py-24 px-4 sm:px-6 max-w-7xl mx-auto text-zinc-100 overflow-hidden">
-      {/* Architectural Background Typography Parallax */}
-      <ParallaxBackgroundText className="text-[14vw] absolute top-6 right-6 z-0" triggerId="journal">
-        JOURNAL
-      </ParallaxBackgroundText>
-
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-col sm:items-start mb-12 relative z-10">
+    <section
+      id="journal"
+      className="relative py-24 sm:py-32 px-5 sm:px-8 lg:px-10 max-w-7xl mx-auto text-[var(--tovu-text-primary)] border-t border-[var(--tovu-border-hairline)]"
+    >
+      {/* Editorial Section Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-14">
         <div>
-          <TextReveal
-            as="h2"
-            trigger="scroll"
-            duration={0.9}
-            className="text-3xl sm:text-4xl font-mono font-medium text-white tracking-tight"
-          >
+          <p className="text-[13px] font-mono tracking-[0.14em] uppercase text-[var(--tovu-accent)] mb-3">
+            02 · Journal
+          </p>
+          <h2 className="font-display font-semibold tracking-[-0.025em] text-[var(--tovu-text-primary)] leading-[1.06] text-[clamp(2.25rem,4.4vw,4rem)]">
             Thinking Out Loud
-          </TextReveal>
+          </h2>
         </div>
-        <WordReveal
-          trigger="scroll"
-          delay={0.2}
-          className="text-sm text-zinc-400 max-w-md font-normal"
-        >
-          Essays on thoughts that come to mind.
-        </WordReveal>
+
+        <p className="text-[17px] text-[var(--tovu-text-secondary)] max-w-md leading-[1.6]">
+          Long-form essays on deterministic AI boundaries, storage engine physics, and software craft.
+        </p>
       </div>
 
-      {/* Bento Grid Layout (Section 10) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
-        {ARTICLES.map((article) => {
+      {/* Editorial Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+        {ARTICLES.map((article, index) => {
           const isWide = article.bentoSpan === "wide";
           return (
-            <div
+            <article
               key={article.id}
               id={`journal-card-${article.id}`}
-              onClick={() => onSelectArticle(article.slug)}
-              className={`group relative rounded-3xl border border-white/10 bg-[#0d0f12] hover:bg-[#121519] p-6 sm:p-8 transition-all duration-300 cursor-pointer hover:border-amber-400/40 hover:shadow-2xl flex flex-col justify-between ${
-                isWide ? "md:col-span-2" : "col-span-1"
+              className={`group rounded-2xl border border-[var(--tovu-border-hairline)] hover:border-[var(--tovu-accent-border)] bg-[var(--tovu-bg-surface)] p-7 sm:p-9 transition-colors duration-300 flex flex-col justify-between gap-7 ${
+                isWide ? "md:col-span-2 lg:col-span-7" : "lg:col-span-5"
               }`}
             >
-              <div>
-                {/* Meta Header */}
-                <div className="flex items-center justify-between gap-2 mb-4">
-                  <span className="text-xs font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20">
+              <div className="space-y-4">
+                {/* Unboxed Editorial Metadata */}
+                <div className="flex flex-wrap items-center gap-2.5 text-[13px] font-mono text-[var(--tovu-text-muted)]">
+                  <span className="text-[var(--tovu-accent)] font-medium">
                     {article.category}
                   </span>
-                  <div className="flex items-center gap-3 text-xs font-mono text-zinc-500">
-                    <span>{article.date}</span>
-                    <span>·</span>
-                    <span>{article.readTime}</span>
-                  </div>
+                  <span aria-hidden="true">·</span>
+                  <span className="tabular-nums">{article.date}</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="tabular-nums">{article.readTime}</span>
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl sm:text-2xl font-mono font-medium text-white mb-3 group-hover:text-amber-200 transition-colors tracking-tight">
-                  {article.title}
+                <h3 className="font-display font-semibold tracking-tight text-[var(--tovu-text-primary)] text-[clamp(1.5rem,2.1vw,2rem)] leading-[1.18]">
+                  <button
+                    type="button"
+                    onClick={() => onSelectArticle(article.slug)}
+                    className="text-left group-hover:text-[var(--tovu-accent)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:underline"
+                  >
+                    {article.title}
+                  </button>
                 </h3>
 
                 {/* Summary */}
-                <p className="text-sm text-zinc-400 leading-relaxed mb-6 line-clamp-3">
+                <p className="text-base sm:text-[17px] text-[var(--tovu-text-secondary)] leading-[1.65] max-w-[60ch]">
                   {article.summary}
                 </p>
 
-                {/* Visual Cue inside card based on visualType */}
+                {/* Conceptual Diagram Cue */}
                 {article.visualType === "graph" && (
-                  <div className="w-full h-24 rounded-xl border border-white/5 bg-black/40 p-3 mb-6 relative overflow-hidden flex items-center justify-around font-mono text-[10px] text-zinc-400">
-                    <div className="px-2 py-1 rounded bg-white/5 border border-white/10">User Intent</div>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                    <div className="px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 text-blue-300">Deterministic State Machine</div>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                    <div className="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">Verified Output</div>
+                  <div className="w-full rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-inset)] p-4 mt-2 flex flex-wrap items-center justify-around gap-3 font-mono text-[13px] text-[var(--tovu-text-secondary)]">
+                    <span className="px-3 py-1.5 rounded-lg bg-[var(--tovu-bg-elevated)] border border-[var(--tovu-border-hairline)]">
+                      User Intent
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-[var(--tovu-accent)] shrink-0" aria-hidden="true" />
+                    <span className="px-3 py-1.5 rounded-lg bg-[var(--tovu-accent-soft)] border border-[var(--tovu-accent-border)] text-[var(--tovu-accent)] font-medium">
+                      State Machine
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-[var(--tovu-accent)] shrink-0" aria-hidden="true" />
+                    <span className="px-3 py-1.5 rounded-lg bg-[var(--tovu-bg-elevated)] border border-[var(--tovu-border-hairline)]">
+                      Verified Output
+                    </span>
                   </div>
                 )}
 
                 {article.visualType === "enclave" && (
-                  <div className="w-full h-20 rounded-xl border border-white/5 bg-black/40 p-3 mb-6 flex items-center justify-between font-mono text-[10px] text-zinc-400">
-                    <div className="flex items-center gap-1.5">
-                      <FileCode2 className="w-4 h-4 text-amber-400" />
+                  <div className="w-full rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-inset)] p-4 mt-2 flex flex-wrap items-center justify-between gap-3 font-mono text-[13px] text-[var(--tovu-text-secondary)]">
+                    <div className="flex items-center gap-2">
+                      <FileCode2 className="w-4 h-4 text-[var(--tovu-accent)]" aria-hidden="true" />
                       <span>MemTable (RAM)</span>
                     </div>
-                    <span>──(Flush)──►</span>
-                    <div className="flex items-center gap-1.5">
-                      <Shield className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[var(--tovu-text-muted)]" aria-hidden="true">→ Flush →</span>
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-[var(--tovu-accent)]" aria-hidden="true" />
                       <span>SSTable (Disk)</span>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Footer row: Tags & Action */}
-              <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                <div className="flex flex-wrap gap-1.5">
-                  {article.tags.slice(0, 3).map((tag) => (
-                    <span
-                      key={tag}
-                      className="text-[11px] font-mono text-zinc-500"
-                    >
-                      #{tag}
-                    </span>
+              {/* Footer: Unboxed Tags & Read Action */}
+              <div className="pt-5 border-t border-[var(--tovu-border-hairline)] flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-mono text-[var(--tovu-text-muted)]">
+                  {article.tags.slice(0, 3).map((tag, tagIdx) => (
+                    <React.Fragment key={tag}>
+                      {tagIdx > 0 && <span aria-hidden="true">·</span>}
+                      <span>{tag}</span>
+                    </React.Fragment>
                   ))}
                 </div>
 
-                <div className="inline-flex items-center gap-1 text-xs font-mono text-zinc-400 group-hover:text-amber-300 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => onSelectArticle(article.slug)}
+                  className="min-h-[40px] inline-flex items-center gap-1.5 text-[15px] font-medium text-[var(--tovu-text-primary)] hover:text-[var(--tovu-accent)] transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)] rounded-lg px-2 py-1"
+                >
                   <span>Read Essay</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </div>
+                  <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </button>
               </div>
-            </div>
+            </article>
           );
         })}
       </div>

@@ -4,19 +4,13 @@ import {
   Sparkles,
   Menu,
   X,
-  Layers,
-  BookOpen,
-  FlaskConical,
-  Database,
-  User,
-  Mail,
   ChevronRight,
-  Terminal,
-  Activity
+  Sun,
+  Moon,
 } from "lucide-react";
 import Lenis from "lenis";
-import { SystemText } from "../motion/SystemText";
 import { useScrollLock } from "../../hooks/useScrollLock";
+import { TovuTheme } from "../../hooks/useTheme";
 
 interface OSNavigationProps {
   activeSection: string;
@@ -24,8 +18,19 @@ interface OSNavigationProps {
   onOpenCommandCenter: () => void;
   onOpenTovu?: () => void;
   onOpenDoom?: () => void;
+  theme?: TovuTheme;
+  onToggleTheme?: () => void;
   lenisRef?: React.RefObject<Lenis | null>;
 }
+
+const NAV_ITEMS = [
+  { id: "work", index: "01", label: "Work", desc: "Engineered Systems & Case Studies" },
+  { id: "journal", index: "02", label: "Journal", desc: "Essays & Engineering Notes" },
+  { id: "lab", index: "03", label: "Lab", desc: "Prototypes & Active Research" },
+  { id: "knowledge", index: "04", label: "Knowledge", desc: "Interconnected Mental Models" },
+  { id: "about", index: "05", label: "About", desc: "Identity, Philosophy & Path" },
+  { id: "contact", index: "06", label: "Contact", desc: "Direct Channels & Inquiries" },
+];
 
 export const OSNavigation: React.FC<OSNavigationProps> = ({
   activeSection,
@@ -33,14 +38,15 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
   onOpenCommandCenter,
   onOpenTovu,
   onOpenDoom,
-  lenisRef
+  theme = "dark",
+  onToggleTheme,
+  lenisRef,
 }) => {
   const handleOpenTovu = onOpenTovu || onOpenDoom || (() => {});
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  // Lock background scroll only while the mobile navigation drawer is open
   useScrollLock({
     lock: isMobileMenuOpen,
     lenisRef,
@@ -48,27 +54,23 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30);
+      setIsScrolled(window.scrollY > 24);
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile drawer on desktop resize or on Escape key
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) {
+      if (window.innerWidth >= 1024) {
         setIsMobileMenuOpen(false);
       }
     };
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isMobileMenuOpen) {
         setIsMobileMenuOpen(false);
       }
     };
-
     window.addEventListener("resize", handleResize);
     window.addEventListener("keydown", handleKeyDown);
     return () => {
@@ -77,189 +79,158 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
     };
   }, [isMobileMenuOpen]);
 
-  const navItems = [
-    {
-      id: "work",
-      index: "01",
-      label: "WORK",
-      desc: "Engineered Systems & Showcase",
-      icon: Layers
-    },
-    {
-      id: "journal",
-      index: "02",
-      label: "JOURNAL",
-      desc: "Architectural Essays & Analysis",
-      icon: BookOpen
-    },
-    {
-      id: "lab",
-      index: "03",
-      label: "LAB",
-      desc: "Experimental Prototypes & R&D",
-      icon: FlaskConical
-    },
-    {
-      id: "knowledge",
-      index: "04",
-      label: "KNOWLEDGE",
-      desc: "Engineering Graph & Tech Stack",
-      icon: Database
-    },
-    {
-      id: "about",
-      index: "05",
-      label: "ABOUT",
-      desc: "System Biography & Philosophy",
-      icon: User
-    },
-    {
-      id: "contact",
-      index: "06",
-      label: "CONTACT",
-      desc: "Direct Transmission & Channels",
-      icon: Mail
-    }
-  ];
-
   const handleSelectSection = (id: string) => {
     setIsMobileMenuOpen(false);
     onNavigate(id);
   };
 
-  const currentNavLabel =
-    navItems.find((item) => item.id === activeSection)?.label ||
-    (activeSection === "home" ? "HOME" : activeSection.toUpperCase());
-
   return (
     <>
       <header
         id="os-floating-header"
-        className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-24px)] md:w-auto max-w-4xl transition-all duration-300"
+        className="fixed top-3 sm:top-5 inset-x-0 z-40 px-4 sm:px-6 pointer-events-none"
       >
         <nav
           id="os-main-nav"
-          aria-label="Tovu Main Navigation"
-          className={`w-full flex items-center justify-between md:justify-start gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-[#0b0d10]/90 backdrop-blur-xl shadow-2xl transition-all duration-300 ${
-            isScrolled ? "scale-[0.98] shadow-black/70 bg-[#090a0d]/95" : ""
-          } ${isMobileMenuOpen ? "border-blue-500/30" : ""}`}
+          aria-label="Primary navigation"
+          className={`pointer-events-auto mx-auto max-w-6xl h-[60px] sm:h-[72px] flex items-center justify-between gap-4 lg:gap-8 px-4 sm:px-6 lg:px-8 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${
+            isScrolled
+              ? "bg-[var(--tovu-bg-surface)]/92 border-[var(--tovu-border-strong)] shadow-[0_16px_44px_-12px_rgba(0,0,0,0.45)]"
+              : "bg-[var(--tovu-bg-surface)]/78 border-[var(--tovu-border-hairline)] shadow-[0_10px_32px_-12px_rgba(0,0,0,0.3)]"
+          }`}
         >
-          {/* Brand / Home Anchor */}
+          {/* Zone 1: Brand Wordmark */}
           <button
             id="nav-brand-btn"
+            type="button"
             onClick={() => handleSelectSection("home")}
-            className="flex items-center gap-2 pl-1 sm:pl-1.5 pr-2 py-1 text-xs font-mono font-medium text-white hover:text-blue-400 transition-colors cursor-pointer group shrink-0"
-            title="Tovu System Home"
+            className="inline-flex items-center gap-2 py-2 text-lg sm:text-xl font-display font-bold tracking-tight text-[var(--tovu-text-primary)] hover:text-[var(--tovu-accent)] transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)] rounded-lg px-1"
+            title="Return to Tovu home"
           >
-            <span className="w-2 h-2 rounded-full bg-blue-500 group-hover:shadow-[0_0_8px_#3b82f6] transition-all animate-pulse" />
-            <SystemText variant="tracking" duration={0.8} className="font-semibold tracking-wider text-xs sm:text-sm">
-              TOVU
-            </SystemText>
-
-            {/* Mobile Active Section Tag */}
-            {activeSection && activeSection !== "home" && (
-              <span className="inline-flex md:hidden items-center gap-1 text-[9px] font-mono text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                <span className="text-zinc-600">/</span>
-                <span>{currentNavLabel}</span>
-              </span>
-            )}
+            <span>Tovu</span>
           </button>
 
-          {/* Desktop Modules Bar (Hidden on mobile/tablet screens < md) */}
-          <div className="hidden md:flex items-center">
-            <div className="w-px h-3.5 bg-white/10 mx-1.5" />
-            <div className="flex items-center gap-0.5 lg:gap-1">
-              {navItems.map((item) => {
-                const isActive = activeSection === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    id={`nav-link-${item.id}`}
-                    onClick={() => handleSelectSection(item.id)}
-                    className={`relative px-2.5 lg:px-3 py-1 text-xs font-mono tracking-wider transition-all duration-200 rounded-full cursor-pointer select-none ${
+          {/* Zone 2: Desktop Navigation Links */}
+          <div className="hidden lg:flex items-center gap-1 xl:gap-2">
+            {NAV_ITEMS.map((item) => {
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  id={`nav-link-${item.id}`}
+                  type="button"
+                  onClick={() => handleSelectSection(item.id)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`relative px-3.5 py-2.5 text-[15px] font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)] ${
+                    isActive
+                      ? "text-[var(--tovu-text-primary)]"
+                      : "text-[var(--tovu-text-muted)] hover:text-[var(--tovu-text-primary)]"
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  <span
+                    aria-hidden="true"
+                    className={`absolute left-3.5 right-3.5 bottom-1.5 h-[2px] rounded-full transition-all duration-200 ${
                       isActive
-                        ? "text-white font-semibold bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-                        : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]"
+                        ? "bg-[var(--tovu-accent)] opacity-100 scale-x-100"
+                        : "bg-[var(--tovu-accent)] opacity-0 scale-x-50"
                     }`}
-                  >
-                    {item.label}
-                    {isActive && (
-                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-3 h-0.5 rounded-full bg-blue-400" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="w-px h-3.5 bg-white/10 mx-1.5" />
+                  />
+                </button>
+              );
+            })}
           </div>
 
-          {/* Desktop Direct Actions (⌘ K + TOVU) */}
-          <div className="hidden md:flex items-center gap-1.5">
-            {/* Command Center (⌘ K) */}
+          {/* Zone 3: Desktop Actions (Theme, Command Palette, Ask Tovu) */}
+          <div className="hidden lg:flex items-center gap-2.5 shrink-0">
+            {onToggleTheme && (
+              <button
+                id="nav-theme-toggle-btn"
+                type="button"
+                onClick={onToggleTheme}
+                aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+                className="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-elevated)]/70 hover:bg-[var(--tovu-bg-elevated)] text-[var(--tovu-text-secondary)] hover:text-[var(--tovu-text-primary)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
+              >
+                {theme === "dark" ? (
+                  <Sun className="w-4 h-4" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
+              </button>
+            )}
+
             <button
               id="nav-command-btn"
+              type="button"
               onClick={onOpenCommandCenter}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono text-zinc-400 hover:text-white bg-white/[0.04] hover:bg-white/10 border border-white/5 transition-all cursor-pointer group"
-              title="Open Command Center (⌘K)"
+              aria-label="Open command palette"
+              title="Command Palette (⌘K)"
+              className="h-10 inline-flex items-center gap-2 px-3.5 rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-elevated)]/70 hover:bg-[var(--tovu-bg-elevated)] text-sm font-mono text-[var(--tovu-text-secondary)] hover:text-[var(--tovu-text-primary)] transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
             >
-              <Command className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white" />
-              <span className="text-[10px] text-zinc-500 font-medium group-hover:text-zinc-300">K</span>
+              <Command className="w-4 h-4" />
+              <span>K</span>
             </button>
 
-            {/* Ask Tovu AI Trigger */}
             <button
               id="nav-ask-tovu-btn"
+              type="button"
               onClick={handleOpenTovu}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium text-blue-200 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 transition-all cursor-pointer hover:shadow-[0_0_12px_rgba(59,130,246,0.3)] active:scale-95"
-              title="Consult Tovu Intelligence"
+              className="h-10 inline-flex items-center gap-2 px-4 rounded-xl bg-[var(--tovu-accent-soft)] hover:bg-[var(--tovu-accent)] text-[var(--tovu-accent)] hover:text-[var(--tovu-accent-ink)] border border-[var(--tovu-accent-border)] text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
             >
-              <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
-              <span>TOVU</span>
+              <Sparkles className="w-4 h-4" />
+              <span>Ask Tovu</span>
             </button>
           </div>
 
-          {/* Mobile Right Controls: Tovu + ⌘ Command + Menu Toggle */}
-          <div className="flex md:hidden items-center gap-1 sm:gap-1.5">
-            {/* Mobile Ask Tovu AI Button */}
+          {/* Mobile / Tablet Compact Controls */}
+          <div className="flex lg:hidden items-center gap-2">
+            {onToggleTheme && (
+              <button
+                id="mobile-nav-theme-btn"
+                type="button"
+                onClick={onToggleTheme}
+                aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+                className="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-elevated)]/70 text-[var(--tovu-text-secondary)] hover:text-[var(--tovu-text-primary)] transition-colors cursor-pointer"
+              >
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            )}
+
             <button
               id="mobile-nav-tovu-btn"
+              type="button"
               onClick={handleOpenTovu}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-mono font-medium text-blue-300 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 active:scale-95 transition-all"
-              title="Consult Tovu Intelligence"
+              className="h-10 inline-flex items-center gap-1.5 px-3.5 rounded-xl bg-[var(--tovu-accent-soft)] border border-[var(--tovu-accent-border)] text-sm font-medium text-[var(--tovu-accent)] whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <Sparkles className="w-3 h-3 text-blue-400 animate-pulse" />
-              <span>TOVU</span>
+              <Sparkles className="w-4 h-4" />
+              <span>Ask Tovu</span>
             </button>
 
-            {/* Mobile Command Center Button */}
             <button
               id="mobile-nav-cmd-btn"
+              type="button"
               onClick={onOpenCommandCenter}
-              className="p-1.5 rounded-full text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 active:scale-95 transition-all"
-              title="Open Command Center (⌘K)"
-              aria-label="Command Center"
+              aria-label="Open command palette"
+              className="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-elevated)]/70 text-[var(--tovu-text-secondary)] cursor-pointer"
             >
-              <Command className="w-3.5 h-3.5" />
+              <Command className="w-4 h-4" />
             </button>
 
-            {/* Mobile Navigation Menu Toggle */}
             <button
               id="mobile-nav-menu-toggle"
+              type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`p-1.5 rounded-full border transition-all active:scale-95 cursor-pointer ${
-                isMobileMenuOpen
-                  ? "bg-blue-500/20 text-white border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.3)]"
-                  : "bg-white/5 text-zinc-300 hover:text-white border-white/10 hover:bg-white/10"
-              }`}
               aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-nav-drawer"
+              className={`w-10 h-10 inline-flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${
+                isMobileMenuOpen
+                  ? "bg-[var(--tovu-accent-soft)] border-[var(--tovu-accent-border)] text-[var(--tovu-accent)]"
+                  : "bg-[var(--tovu-bg-elevated)]/70 border-[var(--tovu-border-hairline)] text-[var(--tovu-text-primary)]"
+              }`}
             >
-              {isMobileMenuOpen ? (
-                <X className="w-4 h-4 text-blue-300" />
-              ) : (
-                <Menu className="w-4 h-4" />
-              )}
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </nav>
@@ -269,7 +240,7 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
       {isMobileMenuOpen && (
         <div
           id="mobile-nav-backdrop"
-          className="fixed inset-0 bg-black/75 backdrop-blur-md z-30 md:hidden animate-fadeIn"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -279,111 +250,49 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
         <div
           ref={drawerRef}
           id="mobile-nav-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Site navigation"
           data-lenis-prevent="true"
-          className="fixed top-[58px] inset-x-3 z-40 max-w-md mx-auto rounded-3xl border border-white/15 bg-[#0a0c0f]/95 backdrop-blur-2xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.85)] md:hidden flex flex-col gap-3.5 animate-fadeIn max-h-[calc(100svh-75px)] overflow-y-auto scrollbar-thin"
+          className="fixed top-[80px] inset-x-4 z-40 max-w-md mx-auto rounded-2xl border border-[var(--tovu-border-strong)] bg-[var(--tovu-bg-surface)]/98 backdrop-blur-2xl p-4 shadow-2xl lg:hidden flex flex-col gap-3 max-h-[calc(100svh-96px)] overflow-y-auto scrollbar-thin"
         >
-          {/* Header Status Bar */}
-          <div className="flex items-center justify-between pb-2.5 border-b border-white/10 px-1">
-            <div className="flex items-center gap-2">
-              <Terminal className="w-3.5 h-3.5 text-blue-400" />
-              <span className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase">
-                SYSTEM NAVIGATION // MODULES
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>ONLINE</span>
-            </div>
-          </div>
-
-          {/* Module Links List */}
           <div className="space-y-1.5">
-            {navItems.map((item) => {
+            {NAV_ITEMS.map((item) => {
               const isActive = activeSection === item.id;
-              const Icon = item.icon;
               return (
                 <button
                   key={item.id}
                   id={`mobile-menu-item-${item.id}`}
+                  type="button"
                   onClick={() => handleSelectSection(item.id)}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-2xl border transition-all text-left group cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border transition-colors text-left cursor-pointer ${
                     isActive
-                      ? "bg-blue-500/15 border-blue-500/35 text-white shadow-[0_0_15px_rgba(59,130,246,0.15)]"
-                      : "bg-white/[0.03] border-white/5 text-zinc-300 hover:bg-white/[0.08] hover:border-white/15 hover:text-white"
+                      ? "bg-[var(--tovu-accent-soft)] border-[var(--tovu-accent-border)] text-[var(--tovu-text-primary)]"
+                      : "bg-[var(--tovu-bg-elevated)]/50 border-[var(--tovu-border-hairline)] text-[var(--tovu-text-secondary)] hover:text-[var(--tovu-text-primary)]"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                        isActive
-                          ? "bg-blue-500/25 text-blue-300 border border-blue-500/40"
-                          : "bg-white/5 text-zinc-400 group-hover:text-zinc-200 border border-white/5"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-zinc-500 group-hover:text-blue-400">
-                          {item.index}
-                        </span>
-                        <span className="text-xs font-mono font-semibold tracking-wider text-white">
-                          {item.label}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-400 line-clamp-1 font-sans">
-                        {item.desc}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="shrink-0 pl-2">
-                    {isActive ? (
-                      <span className="text-[9px] font-mono uppercase tracking-wider text-blue-300 bg-blue-500/20 border border-blue-500/30 px-2 py-0.5 rounded-full">
-                        ACTIVE
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[13px] font-mono tabular-nums text-[var(--tovu-text-muted)]">
+                        {item.index}
                       </span>
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-300 transition-transform group-hover:translate-x-0.5" />
-                    )}
+                      <span className="text-base font-display font-semibold">
+                        {item.label}
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-[var(--tovu-text-muted)] mt-0.5 truncate">
+                      {item.desc}
+                    </p>
                   </div>
+
+                  <ChevronRight
+                    className={`w-4 h-4 shrink-0 ${
+                      isActive ? "text-[var(--tovu-accent)]" : "text-[var(--tovu-text-muted)]"
+                    }`}
+                  />
                 </button>
               );
             })}
-          </div>
-
-          {/* Quick Tools Launchers Grid */}
-          <div className="pt-2 border-t border-white/10 grid grid-cols-2 gap-2">
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onOpenCommandCenter();
-              }}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-mono text-zinc-200 hover:text-white transition-all cursor-pointer"
-            >
-              <Command className="w-3.5 h-3.5 text-zinc-400" />
-              <span>COMMAND ⌘K</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                handleOpenTovu();
-              }}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-blue-500/30 bg-blue-500/15 hover:bg-blue-500/25 text-xs font-mono text-blue-200 transition-all cursor-pointer shadow-[0_0_10px_rgba(59,130,246,0.2)]"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
-              <span>TOVU</span>
-            </button>
-          </div>
-
-          {/* Mobile Drawer Telemetry Footer */}
-          <div className="pt-1 flex items-center justify-between text-[10px] font-mono text-zinc-500 px-1">
-            <div className="flex items-center gap-1.5">
-              <Activity className="w-3 h-3 text-blue-400" />
-              <span>TOVU KERNEL v3.2</span>
-            </div>
-            <span>TOUCH DISPATCH 60FPS</span>
           </div>
         </div>
       )}
