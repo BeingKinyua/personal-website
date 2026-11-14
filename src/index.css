@@ -1,10 +1,66 @@
 @import "tailwindcss";
+@custom-variant light (&:where(.light, .light *, [data-theme="light"], [data-theme="light"] *));
 
 @theme {
   --color-background: #090a0b;
   --color-surface: #121415;
   --color-on-surface: #f1f2f4;
   --color-accent: #c3c0ff;
+}
+
+:root {
+  --tovu-hero-bg: #080b10;
+  --tovu-hero-scrim-desktop: radial-gradient(
+    ellipse at 22% 50%,
+    rgba(8, 11, 16, 0.90) 0%,
+    rgba(8, 11, 16, 0.68) 42%,
+    rgba(8, 11, 16, 0.18) 78%,
+    rgba(8, 11, 16, 0.06) 100%
+  );
+  --tovu-hero-scrim-mobile: radial-gradient(
+    ellipse at 45% 46%,
+    rgba(8, 11, 16, 0.88) 0%,
+    rgba(8, 11, 16, 0.62) 55%,
+    rgba(8, 11, 16, 0.22) 100%
+  );
+  --tovu-hero-bottom-fade: linear-gradient(
+    to top,
+    #07080a 0%,
+    rgba(7, 8, 10, 0.65) 50%,
+    transparent 100%
+  );
+  --tovu-rain-glyph: #8EB7C4;
+  --tovu-rain-glyph-muted: #5A7D8C;
+  --tovu-rain-accent: #8CE0BD;
+  --tovu-rain-active: #8AFFCD;
+}
+
+html.light,
+html[data-theme="light"] {
+  --tovu-hero-bg: #F5F3EE;
+  --tovu-hero-scrim-desktop: radial-gradient(
+    ellipse at 22% 50%,
+    rgba(245, 243, 238, 0.92) 0%,
+    rgba(245, 243, 238, 0.72) 42%,
+    rgba(245, 243, 238, 0.22) 78%,
+    rgba(245, 243, 238, 0.08) 100%
+  );
+  --tovu-hero-scrim-mobile: radial-gradient(
+    ellipse at 45% 46%,
+    rgba(245, 243, 238, 0.90) 0%,
+    rgba(245, 243, 238, 0.66) 55%,
+    rgba(245, 243, 238, 0.24) 100%
+  );
+  --tovu-hero-bottom-fade: linear-gradient(
+    to top,
+    #F5F3EE 0%,
+    rgba(245, 243, 238, 0.65) 50%,
+    transparent 100%
+  );
+  --tovu-rain-glyph: #485662;
+  --tovu-rain-glyph-muted: #74828E;
+  --tovu-rain-accent: #0F766E;
+  --tovu-rain-active: #0D9488;
 }
 
 @layer base {
