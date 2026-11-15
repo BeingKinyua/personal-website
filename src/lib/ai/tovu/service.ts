@@ -51,7 +51,9 @@ export class TovuService {
     const startTime = Date.now();
     const input = TovuServiceInputSchema.parse(rawInput);
     const query = input.message.trim();
-    const sessionId = input.sessionId || "anonymous_session";
+    const sessionId = input.sessionId;
+    if (!sessionId) throw new ValidationError("Verified visitor session required");
+    if (input.conversationId) await this.conversationService.getConversation(input.conversationId, sessionId, input.userId);
 
     logger.info("Tovu inquiry received", {
       query: query.slice(0, 100),
@@ -78,7 +80,9 @@ export class TovuService {
       try {
         const messages = await this.conversationService.listMessages(
           input.conversationId,
-          4
+          4,
+          sessionId,
+          input.userId
         );
         for (const m of messages) {
           if (m.role === "user" || m.role === "assistant") {
@@ -157,7 +161,10 @@ export class TovuService {
         await this.conversationService.addMessage(
           input.conversationId,
           "user",
-          query
+          query,
+          undefined,
+          sessionId,
+          input.userId
         );
         await this.conversationService.addMessage(
           input.conversationId,
@@ -167,7 +174,9 @@ export class TovuService {
             references: response.references,
             actions: response.actions,
             intent: response.intent,
-          }
+          },
+          sessionId,
+          input.userId
         );
       } catch (err) {
         logger.warn("Could not persist conversation turn", { error: String(err) });
