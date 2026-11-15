@@ -46,18 +46,27 @@ export async function bindRequestIdentity(req: Request, res: Response, next: Nex
       if (result.error || !result.data.user) throw new AuthenticationError("Invalid or expired access token");
       user = result.data.user;
     }
-    let visitorSession = readCookie(req) ? verify(readCookie(req)!) : null;
+    const sessionConfigured = Boolean(process.env.VISITOR_SESSION_SECRET && process.env.VISITOR_SESSION_SECRET.length >= 32);
+    let visitorSession = sessionConfigured && readCookie(req) ? verify(readCookie(req)!) : null;
     if (!visitorSession) {
       visitorSession = randomBytes(32).toString("hex");
-      const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-      res.setHeader("Set-Cookie", COOKIE + "=" + visitorSession + "." + sign(visitorSession) +
-        "; Path=/; HttpOnly; SameSite=Lax; Max-Age=" + MAX_AGE + secure);
+      if (sessionConfigured) {
+        const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+        res.setHeader("Set-Cookie", COOKIE + "=" + visitorSession + "." + sign(visitorSession) +
+          "; Path=/; HttpOnly; SameSite=Lax; Max-Age=" + MAX_AGE + secure);
+      }
     }
     (req as AuthenticatedRequest).identity = { user, client, visitorSession };
     next();
   } catch (error) {
     next(error);
   }
+}
+export function requireVisitorSession(req: Request): RequestIdentity {
+  if (!process.env.VISITOR_SESSION_SECRET || process.env.VISITOR_SESSION_SECRET.length < 32) {
+    throw new Error("Visitor sessions are not configured on the server");
+  }
+  return identity(req);
 }
 export function identity(req: Request): RequestIdentity {
   const result = (req as AuthenticatedRequest).identity;
