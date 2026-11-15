@@ -63,7 +63,7 @@ export async function resolveRequestAuthContext(
   const { data: profile, error: profileError } = await client
     .from("profiles")
     .select("*")
-    .eq("id", user.id)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (profileError || !profile) {
