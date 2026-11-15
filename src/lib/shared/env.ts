@@ -103,7 +103,7 @@ export function getServerEnv(): {
     ...publicConfig,
     supabaseServiceRoleKey: serviceRoleKey,
     geminiApiKey: readProcessEnv("GEMINI_API_KEY"),
-    sessionSecret: readProcessEnv("SESSION_SECRET") || readProcessEnv("TOVU_SESSION_SECRET"),
+    sessionSecret: readProcessEnv("VISITOR_SESSION_SECRET") || readProcessEnv("SESSION_SECRET") || readProcessEnv("TOVU_SESSION_SECRET"),
     nodeEnv,
   };
 }
