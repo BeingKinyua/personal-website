@@ -22,7 +22,7 @@ import { HybridSearchService } from "../search/hybrid";
 import { TovuService } from "../ai/tovu/service";
 import { ContentIndexer } from "../ai/embeddings/indexer";
 import { ConversationService, toPublicConversation } from "../ai/conversations/service";
-import { checkRateLimit } from "../shared/rateLimit";
+import { checkSharedRateLimit } from "../shared/distributedRateLimit";
 import {
   resolveRequestAuthContext,
   requireRequestAuthContext,
@@ -677,13 +677,13 @@ export function createBackendRouter(): Router {
   const contentIndexer = new ContentIndexer();
   const conversationService = new ConversationService();
 
-  function enforceRateLimit(
+  async function enforceRateLimit(
     res: Response,
     rateKey: string,
     options: { windowMs: number; maxRequests: number },
     message: string
   ) {
-    const rateCheck = checkRateLimit(rateKey, options);
+    const rateCheck = await checkSharedRateLimit(rateKey, options);
     res.setHeader("X-RateLimit-Limit", String(rateCheck.limit));
     res.setHeader("X-RateLimit-Remaining", String(rateCheck.remaining));
     res.setHeader("X-RateLimit-Reset", String(Math.ceil(rateCheck.resetInMs / 1000)));
@@ -703,7 +703,7 @@ export function createBackendRouter(): Router {
       const { client, user, profile } = await resolveRequestAuthContext(req, res);
       const clientIp = getClientIp(req);
       const rateKey = user ? `search:user:${user.id}` : `search:ip:${clientIp}`;
-      enforceRateLimit(
+      await enforceRateLimit(
         res,
         rateKey,
         { windowMs: 60_000, maxRequests: 60 },
@@ -748,7 +748,7 @@ export function createBackendRouter(): Router {
       const clientIp = getClientIp(req);
 
       const rateKey = user ? `tovu:user:${user.id}` : `tovu:ip:${clientIp}`;
-      enforceRateLimit(
+      await enforceRateLimit(
         res,
         rateKey,
         { windowMs: 60_000, maxRequests: 30 },
@@ -778,7 +778,7 @@ export function createBackendRouter(): Router {
       const { user } = await resolveRequestAuthContext(req, res);
       const clientIp = getClientIp(req);
       const rateKey = user ? `conv:user:${user.id}` : `conv:ip:${clientIp}`;
-      enforceRateLimit(
+      await enforceRateLimit(
         res,
         rateKey,
         { windowMs: 60_000, maxRequests: 60 },
@@ -809,7 +809,7 @@ export function createBackendRouter(): Router {
         );
       }
 
-      enforceRateLimit(
+      await enforceRateLimit(
         res,
         `index:admin:${profile?.id || "system"}`,
         { windowMs: 60_000, maxRequests: 10 },
