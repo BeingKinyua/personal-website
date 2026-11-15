@@ -20,36 +20,9 @@ export interface Database {
   public: {
     Tables: {
       profiles: {
-        Row: {
-          id: string;
-          username: string;
-          full_name: string | null;
-          avatar_url: string | null;
-          bio: string | null;
-          role: UserRole;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          username: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          bio?: string | null;
-          role?: UserRole;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          username?: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          bio?: string | null;
-          role?: UserRole;
-          created_at?: string;
-          updated_at?: string;
-        };
+        Row: { id: string; user_id: string; display_name: string; username: string | null; avatar_url: string | null; bio: string | null; role: UserRole; created_at: string; updated_at: string };
+        Insert: { id?: string; user_id: string; display_name: string; username?: string | null; avatar_url?: string | null; bio?: string | null; role?: UserRole; created_at?: string; updated_at?: string };
+        Update: { id?: string; user_id?: string; display_name?: string; username?: string | null; avatar_url?: string | null; bio?: string | null; role?: UserRole; created_at?: string; updated_at?: string };
         Relationships: [];
       };
 
@@ -776,58 +749,15 @@ export interface Database {
       };
 
       ai_conversations: {
-        Row: {
-          id: string;
-          session_id: string;
-          user_id: string | null;
-          title: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          session_id: string;
-          user_id?: string | null;
-          title?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          session_id?: string;
-          user_id?: string | null;
-          title?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+        Row: { id: string; session_id: string; visitor_id: string | null; started_at: string; last_message_at: string; metadata: Json };
+        Insert: { id?: string; session_id: string; visitor_id?: string | null; started_at?: string; last_message_at?: string; metadata?: Json };
+        Update: { id?: string; session_id?: string; visitor_id?: string | null; started_at?: string; last_message_at?: string; metadata?: Json };
         Relationships: [];
       };
-
       ai_messages: {
-        Row: {
-          id: string;
-          conversation_id: string;
-          role: "user" | "assistant" | "system";
-          content: string;
-          metadata: Json | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          conversation_id: string;
-          role: "user" | "assistant" | "system";
-          content: string;
-          metadata?: Json | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          conversation_id?: string;
-          role?: "user" | "assistant" | "system";
-          content?: string;
-          metadata?: Json | null;
-          created_at?: string;
-        };
+        Row: { id: string; conversation_id: string; role: string; content: string; message_references: Json; created_at: string };
+        Insert: { id?: string; conversation_id: string; role: string; content: string; message_references?: Json; created_at?: string };
+        Update: { id?: string; conversation_id?: string; role?: string; content?: string; message_references?: Json; created_at?: string };
         Relationships: [];
       };
 
