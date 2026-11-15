@@ -15,9 +15,6 @@ export type TovuIntent =
   | "about_victor"
   | "general_question";
 
-// Backwards-compatible alias
-export type DoomIntent = TovuIntent;
-
 export interface IntentClassification {
   intent: TovuIntent;
   confidence: number;

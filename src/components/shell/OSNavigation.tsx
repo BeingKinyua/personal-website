@@ -15,9 +15,8 @@ import { TovuTheme } from "../../hooks/useTheme";
 interface OSNavigationProps {
   activeSection: string;
   onNavigate: (sectionId: string) => void;
-  onOpenCommandCenter: () => void;
+  onOpenCommandPalette: () => void;
   onOpenTovu?: () => void;
-  onOpenDoom?: () => void;
   theme?: TovuTheme;
   onToggleTheme?: () => void;
   lenisRef?: React.RefObject<Lenis | null>;
@@ -35,14 +34,13 @@ const NAV_ITEMS = [
 export const OSNavigation: React.FC<OSNavigationProps> = ({
   activeSection,
   onNavigate,
-  onOpenCommandCenter,
+  onOpenCommandPalette,
   onOpenTovu,
-  onOpenDoom,
   theme = "dark",
   onToggleTheme,
   lenisRef,
 }) => {
-  const handleOpenTovu = onOpenTovu || onOpenDoom || (() => {});
+  const handleOpenTovu = onOpenTovu || (() => {});
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -163,7 +161,7 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
             <button
               id="nav-command-btn"
               type="button"
-              onClick={onOpenCommandCenter}
+              onClick={onOpenCommandPalette}
               aria-label="Open command palette"
               title="Command Palette (⌘K)"
               className="h-10 inline-flex items-center gap-2 px-3.5 rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-elevated)]/70 hover:bg-[var(--tovu-bg-elevated)] text-sm font-mono text-[var(--tovu-text-secondary)] hover:text-[var(--tovu-text-primary)] transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
@@ -210,7 +208,7 @@ export const OSNavigation: React.FC<OSNavigationProps> = ({
             <button
               id="mobile-nav-cmd-btn"
               type="button"
-              onClick={onOpenCommandCenter}
+              onClick={onOpenCommandPalette}
               aria-label="Open command palette"
               className="w-10 h-10 inline-flex items-center justify-center rounded-xl border border-[var(--tovu-border-hairline)] bg-[var(--tovu-bg-elevated)]/70 text-[var(--tovu-text-secondary)] cursor-pointer"
             >

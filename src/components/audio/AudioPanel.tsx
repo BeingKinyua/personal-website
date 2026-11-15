@@ -226,18 +226,20 @@ export const AudioPanel: React.FC<AudioPanelProps> = ({
               </div>
             </div>
           ) : (
-            <div className="space-y-5">
-              <div>
-                <span className="text-[13px] font-mono uppercase tracking-[0.1em] text-[var(--tovu-accent)] block mb-1">
-                  Article Narration
-                </span>
-                <h3 className="font-display text-xl font-semibold text-[var(--tovu-text-primary)]">
-                  {narration?.title || "Article Audio Readout"}
-                </h3>
-                <p className="text-[14px] text-[var(--tovu-text-secondary)] mt-1">
-                  Synthesized voice pacing calibrated for long-form reading.
-                </p>
-              </div>
+              <div className="space-y-5">
+                <div>
+                  <span className="text-[13px] font-mono uppercase tracking-[0.1em] text-[var(--tovu-accent)] block mb-1">
+                    Reading Pacer
+                  </span>
+                  <h3 className="font-display text-xl font-semibold text-[var(--tovu-text-primary)]">
+                    {narration?.title || "Article Reading Outline"}
+                  </h3>
+                  <p className="text-[14px] text-[var(--tovu-text-secondary)] mt-1">
+                    {narration?.audioUrl
+                      ? "Audio readout ready for playback."
+                      : "Silent reading pacer preview — server TTS audio files are not yet attached to this entry."}
+                  </p>
+                </div>
 
               {/* Voice Selector */}
               <div className="space-y-2">
@@ -359,7 +361,9 @@ export const AudioPanel: React.FC<AudioPanelProps> = ({
           <div className="flex items-center justify-between text-[13px] text-[var(--tovu-text-muted)] pt-3 border-t border-[var(--tovu-border-hairline)]">
             <span className="flex items-center gap-1.5">
               <Info className="w-3.5 h-3.5 shrink-0" />
-              Audio never autoplays on entry.
+              {mode === "ambient"
+                ? "Synthesized in-browser via Web Audio. Never autoplays."
+                : "Silent section pacer. Audio never autoplays on entry."}
             </span>
           </div>
         </div>

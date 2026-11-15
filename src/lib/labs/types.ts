@@ -13,6 +13,7 @@ export interface Lab extends LabRow {}
 
 export interface LabFilter {
   status?: LabStatus;
+  excludeArchived?: boolean;
   category?: string;
   search?: string;
   page?: number;

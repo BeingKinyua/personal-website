@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Search,
   X,
@@ -11,30 +11,44 @@ import {
   Sparkles,
   Compass,
   CornerDownLeft,
+  Loader2,
+  AlertCircle,
+  RotateCcw,
 } from "lucide-react";
-import { searchTovu, searchTovuHybrid, SearchResultItem } from "../../services/searchService";
+import {
+  getCommandSuggestions,
+  searchTovuHybrid,
+  SearchResultItem,
+} from "../../services/searchService";
 import { useScrollLock } from "../../hooks/useScrollLock";
+import { useDialogFocusTrap } from "../../hooks/useDialogFocusTrap";
 import Lenis from "lenis";
 
-interface CommandCenterProps {
+interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (sectionId: string) => void;
   onOpenProject: (slug: string) => void;
   onOpenArticle: (slug: string) => void;
-  onAskTovu?: (initialPrompt?: string) => void;
-  onAskDoom?: (initialPrompt?: string) => void;
+  onAskTovu: (initialPrompt?: string) => void;
   lenisRef?: React.RefObject<Lenis | null>;
 }
 
-export const CommandCenter: React.FC<CommandCenterProps> = ({
+const FILTER_TO_SOURCE_TYPE: Record<string, string[] | undefined> = {
+  ALL: undefined,
+  WORK: ["project"],
+  JOURNAL: ["article"],
+  LAB: ["lab"],
+  KNOWLEDGE: ["concept"],
+};
+
+export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
   onNavigate,
   onOpenProject,
   onOpenArticle,
   onAskTovu,
-  onAskDoom,
   lenisRef,
 }) => {
   useScrollLock({
@@ -42,13 +56,19 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
     lenisRef,
   });
 
-  const handleAsk = onAskTovu || onAskDoom || (() => {});
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResultItem[]>([]);
+  const [results, setResults] = useState<SearchResultItem[]>(getCommandSuggestions());
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCounter, setRetryCounter] = useState(0);
+
+  const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
+
+  useDialogFocusTrap(isOpen, dialogRef, { initialFocusRef: inputRef });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -71,48 +91,72 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
   useEffect(() => {
     if (isOpen) {
       setQuery("");
+      setActiveFilter("ALL");
+      setError(null);
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
+  const filterResults = useCallback(
+    (items: SearchResultItem[], filter: string) => {
+      if (filter === "ALL") return items;
+      return items.filter((r) => r.module === filter || r.module === "TOVU");
+    },
+    []
+  );
+
   useEffect(() => {
-    let cancelled = false;
-    const rawResults = searchTovu(query);
-    if (activeFilter === "ALL") {
-      setResults(rawResults);
-    } else {
-      setResults(
-        rawResults.filter(
-          (r) => r.module === activeFilter || r.module === "TOVU" || r.module === "DOOM"
-        )
-      );
-    }
-    setSelectedIndex(0);
+    if (!isOpen) return;
+    const trimmed = query.trim();
 
-    if (query.trim()) {
-      const timer = setTimeout(() => {
-        searchTovuHybrid(query).then((hybridResults) => {
-          if (!cancelled && hybridResults.length > 0) {
-            if (activeFilter === "ALL") {
-              setResults(hybridResults);
-            } else {
-              setResults(
-                hybridResults.filter(
-                  (r) => r.module === activeFilter || r.module === "TOVU" || r.module === "DOOM"
-                )
-              );
-            }
-          }
+    if (!trimmed) {
+      setLoading(false);
+      setError(null);
+      setResults(filterResults(getCommandSuggestions(), activeFilter));
+      setSelectedIndex(0);
+      return;
+    }
+
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const types = FILTER_TO_SOURCE_TYPE[activeFilter];
+        const items = await searchTovuHybrid(trimmed, {
+          signal: controller.signal,
+          types,
         });
-      }, 150);
+        if (!controller.signal.aborted) {
+          setResults(filterResults(items, activeFilter));
+          setSelectedIndex(0);
+          setLoading(false);
+        }
+      } catch (err) {
+        if ((err as { name?: string })?.name === "AbortError") return;
+        if (!controller.signal.aborted) {
+          setLoading(false);
+          setError(err instanceof Error ? err.message : "Search request failed");
+          setResults([
+            {
+              id: `tovu-query-${trimmed}`,
+              module: "TOVU",
+              title: `Ask Tovu: "${trimmed}"`,
+              subtitle: "Delegate query directly to Tovu intelligence",
+              action: { type: "ask_tovu", target: trimmed },
+            },
+          ]);
+        }
+      }
+    }, 150);
 
-      return () => {
-        cancelled = true;
-        clearTimeout(timer);
-      };
-    }
-  }, [query, activeFilter]);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [query, activeFilter, isOpen, retryCounter, filterResults]);
 
   const handleSelect = (item: SearchResultItem) => {
     onClose();
@@ -122,8 +166,8 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
       onOpenProject(item.action.target);
     } else if (item.action.type === "open_article") {
       onOpenArticle(item.action.target);
-    } else if (item.action.type === "ask_tovu" || item.action.type === "ask_doom") {
-      handleAsk(item.action.target);
+    } else if (item.action.type === "ask_tovu") {
+      onAskTovu(item.action.target);
     }
   };
 
@@ -158,7 +202,6 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
       case "NAVIGATION":
         return <Compass className="w-4 h-4 text-[var(--tovu-text-muted)]" />;
       case "TOVU":
-      case "DOOM":
         return <Sparkles className="w-4 h-4 text-[var(--tovu-accent)]" />;
       default:
         return <Command className="w-4 h-4 text-[var(--tovu-text-muted)]" />;
@@ -169,27 +212,33 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
 
   return (
     <div
-      id="command-center-modal"
+      id="command-palette-modal"
       data-lenis-prevent="true"
       className="fixed inset-0 z-50 flex items-start justify-center pt-14 sm:pt-24 px-4 bg-black/75 backdrop-blur-md"
       onClick={onClose}
     >
       <div
-        id="command-center-dialog"
+        ref={dialogRef}
+        id="command-palette-dialog"
         role="dialog"
         aria-modal="true"
         aria-label="Search and command palette"
+        tabIndex={-1}
         data-lenis-prevent="true"
-        className="relative w-full max-w-2xl rounded-2xl border border-[var(--tovu-border-strong)] bg-[var(--tovu-bg-canvas)] shadow-2xl overflow-hidden text-[var(--tovu-text-primary)] flex flex-col max-h-[80vh]"
+        className="relative w-full max-w-2xl rounded-2xl border border-[var(--tovu-border-strong)] bg-[var(--tovu-bg-canvas)] shadow-2xl overflow-hidden text-[var(--tovu-text-primary)] flex flex-col max-h-[80vh] focus:outline-none"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Search Input */}
         <div className="flex items-center px-5 py-4 border-b border-[var(--tovu-border-hairline)] gap-3 bg-[var(--tovu-bg-surface)]">
-          <Search className="w-5 h-5 text-[var(--tovu-text-muted)] shrink-0" aria-hidden="true" />
+          {loading ? (
+            <Loader2 className="w-5 h-5 text-[var(--tovu-accent)] animate-spin shrink-0" aria-hidden="true" />
+          ) : (
+            <Search className="w-5 h-5 text-[var(--tovu-text-muted)] shrink-0" aria-hidden="true" />
+          )}
           <input
             ref={inputRef}
-            id="command-center-input"
+            id="command-palette-input"
             type="text"
             placeholder="Search systems, essays, experiments, or ask Tovu..."
             value={query}
@@ -238,6 +287,23 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
             );
           })}
         </div>
+
+        {error && (
+          <div className="px-4 py-2.5 bg-red-500/10 border-b border-red-500/20 flex items-center justify-between gap-3 text-[13px] text-[var(--tovu-text-secondary)]">
+            <span className="inline-flex items-center gap-2 min-w-0 truncate">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <span className="truncate">{error}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setRetryCounter((c) => c + 1)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--tovu-border-hairline)] hover:border-[var(--tovu-accent)] text-xs font-mono shrink-0 cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Results List */}
         <div

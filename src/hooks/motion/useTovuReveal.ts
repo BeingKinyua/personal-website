@@ -19,10 +19,10 @@ export function useTovuReveal(
       const container = containerRef.current;
       if (!container) return;
 
-      const identityEl = container.querySelector(".tovu-identity, .doom-identity");
-      const thoughtLines = container.querySelectorAll(".tovu-thought-line, .doom-thought-line");
-      const infoCards = container.querySelectorAll(".tovu-info-card, .doom-info-card");
-      const actionButtons = container.querySelectorAll(".tovu-action-btn, .doom-action-btn");
+      const identityEl = container.querySelector(".tovu-identity");
+      const thoughtLines = container.querySelectorAll(".tovu-thought-line");
+      const infoCards = container.querySelectorAll(".tovu-info-card");
+      const actionButtons = container.querySelectorAll(".tovu-action-btn");
 
       if (prefersReduced) {
         gsap.to([identityEl, ...Array.from(thoughtLines), ...Array.from(infoCards), ...Array.from(actionButtons)].filter(Boolean), {
@@ -121,6 +121,3 @@ export function useTovuReveal(
     [options.onComplete]
   );
 }
-
-// Backwards-compatible alias
-export const useDoomReveal = useTovuReveal;

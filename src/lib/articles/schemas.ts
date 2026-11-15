@@ -5,9 +5,20 @@
 import { z } from "zod";
 import { CONTENT_STATUS } from "../shared/constants";
 
+const optionalQueryBoolean = z.preprocess((value) => {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") return true;
+    if (normalized === "false" || normalized === "0") return false;
+  }
+  return value;
+}, z.boolean().optional());
+
 export const articleFilterSchema = z.object({
   status: z.enum([CONTENT_STATUS.DRAFT, CONTENT_STATUS.PUBLISHED, CONTENT_STATUS.ARCHIVED]).optional(),
-  featured: z.boolean().optional(),
+  featured: optionalQueryBoolean,
   search: z.string().optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(100).optional().default(20),

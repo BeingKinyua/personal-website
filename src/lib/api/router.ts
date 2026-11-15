@@ -1,47 +1,68 @@
 /**
- * VictorOS Backend Foundation API Router
- * Dispatches HTTP requests to domain services with standard validation, error handling, and response framing.
+ * Tovu Backend API Router
+ * Dispatches HTTP requests to request-scoped domain services with strict authentication,
+ * role-based authorization, cryptographic visitor sessions, and standard error framing.
  */
 
-import { Router } from "express";
-import { bindRequestIdentity, identity, requireVisitorSession } from "../auth/request";
-import { AuthorizationError } from "../shared/errors";
-import { executeApiHandler, createApiResponse } from "../shared/api";
+import { Router, type Request, type Response } from "express";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../supabase/types";
+import { executeApiHandler } from "../shared/api";
+import { ProjectRepository } from "../projects/repository";
 import { ProjectService } from "../projects/service";
+import { ArticleRepository } from "../articles/repository";
 import { ArticleService } from "../articles/service";
+import { LabRepository } from "../labs/repository";
 import { LabService } from "../labs/service";
+import { KnowledgeRepository } from "../knowledge/repository";
 import { KnowledgeService } from "../knowledge/service";
+import { MediaRepository } from "../media/repository";
 import { MediaService } from "../media/service";
 import { HybridSearchService } from "../search/hybrid";
-import { TovuService, DoomService } from "../ai/tovu/service";
+import { TovuService } from "../ai/tovu/service";
 import { ContentIndexer } from "../ai/embeddings/indexer";
-import { ConversationService } from "../ai/conversations/service";
+import { ConversationService, toPublicConversation } from "../ai/conversations/service";
 import { checkRateLimit } from "../shared/rateLimit";
-import { getCurrentProfile, getCurrentUser, requireAuthContext } from "../auth/session";
+import {
+  resolveRequestAuthContext,
+  requireRequestAuthContext,
+} from "../auth/session";
+import { canAccessCommandCenter, canManageSystem } from "../auth/authorization";
+import { resolveOrIssueVisitorSession } from "../auth/visitorSession";
 import { SYSTEM, HTTP_STATUS } from "../shared/constants";
-import { getPublicEnv, getServerEnv } from "../shared/env";
-import { ValidationError, TooManyRequestsError } from "../shared/errors";
+import { assertSupabaseConfigured, getServerEnv, isSupabaseConfigured } from "../shared/env";
+import {
+  AuthorizationError,
+  TooManyRequestsError,
+  ValidationError,
+} from "../shared/errors";
+
+function buildScopedServices(client?: SupabaseClient<Database> | null) {
+  const c = client || undefined;
+  return {
+    projects: new ProjectService(new ProjectRepository(c)),
+    articles: new ArticleService(new ArticleRepository(c)),
+    labs: new LabService(new LabRepository(c)),
+    knowledge: new KnowledgeService(new KnowledgeRepository(c)),
+    media: new MediaService(new MediaRepository(c)),
+  };
+}
+
+function getClientIp(req: Request): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) {
+    return forwarded.split(",")[0].trim();
+  }
+  return req.socket?.remoteAddress || "unknown";
+}
 
 export function createBackendRouter(): Router {
   const router = Router();
-  router.use(bindRequestIdentity);
-  const projectService = new ProjectService();
-  const articleService = new ArticleService();
-  const labService = new LabService();
-  const knowledgeService = new KnowledgeService();
-  const mediaService = new MediaService();
 
   // Health and System Diagnostics
-  router.get("/health", (req, res) => {
+  router.get("/health", (_req, res) => {
     executeApiHandler(res, async () => {
-      const publicEnv = getPublicEnv();
       const serverEnv = getServerEnv();
-
-      const isSupabaseConfigured =
-        !publicEnv.supabaseUrl.includes("placeholder") &&
-        !publicEnv.supabaseUrl.includes("your-project-id") &&
-        !publicEnv.supabaseAnonKey.includes("placeholder") &&
-        !publicEnv.supabaseAnonKey.includes("your-supabase");
 
       return {
         system: SYSTEM.NAME,
@@ -50,26 +71,27 @@ export function createBackendRouter(): Router {
         timestamp: new Date().toISOString(),
         environment: serverEnv.nodeEnv,
         features: {
-          supabaseConfigured: isSupabaseConfigured,
-          adminKeyConfigured: Boolean(
-            serverEnv.supabaseServiceRoleKey && !serverEnv.supabaseServiceRoleKey.includes("your-supabase")
+          supabaseConfigured: isSupabaseConfigured(false),
+          adminKeyConfigured: isSupabaseConfigured(true),
+          geminiKeyConfigured: Boolean(
+            serverEnv.geminiApiKey && serverEnv.geminiApiKey !== "MY_GEMINI_API_KEY"
           ),
-          geminiKeyConfigured: Boolean(serverEnv.geminiApiKey && serverEnv.geminiApiKey !== "MY_GEMINI_API_KEY"),
         },
       };
     });
   });
 
-  // Authentication & Session inspection
+  // Authentication & Session inspection (strictly scoped to caller credentials)
   router.get("/auth/session", (req, res) => {
     executeApiHandler(res, async () => {
-      const user = await Promise.resolve(identity(req).user);
-      const profile = await getCurrentProfile(identity(req).client || undefined);
+      const { user, profile } = await resolveRequestAuthContext(req, res);
 
       return {
         authenticated: Boolean(user),
         user: user ? { id: user.id, email: user.email } : null,
-        profile: profile ? { id: profile.id, username: profile.username, role: profile.role } : null,
+        profile: profile
+          ? { id: profile.id, username: profile.username, role: profile.role }
+          : null,
       };
     });
   });
@@ -77,87 +99,127 @@ export function createBackendRouter(): Router {
   // Projects Endpoints
   router.get("/projects", (req, res) => {
     executeApiHandler(res, async () => {
-      const profile = await getCurrentProfile(identity(req).client || undefined);
-      return await projectService.listProjects(req.query, profile);
+      const { client, profile } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).projects.listProjects(req.query, profile);
     });
   });
 
   router.get("/projects/:slug", (req, res) => {
     executeApiHandler(res, async () => {
-      const profile = await getCurrentProfile(identity(req).client || undefined);
-      return await projectService.getProjectBySlug(req.params.slug, profile);
+      const { client, profile } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).projects.getProjectBySlug(
+        req.params.slug,
+        profile
+      );
     });
   });
 
   router.post("/projects", (req, res) => {
-    executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await projectService.createProject(req.body, profile);
-    }, HTTP_STATUS.CREATED);
+    executeApiHandler(
+      res,
+      async () => {
+        const { client, profile } = await requireRequestAuthContext(req, res);
+        return await buildScopedServices(client).projects.createProject(req.body, profile);
+      },
+      HTTP_STATUS.CREATED
+    );
   });
 
   router.put("/projects/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await projectService.updateProject(req.params.id, req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).projects.updateProject(
+        req.params.id,
+        req.body,
+        profile
+      );
     });
   });
 
   router.post("/projects/:id/publish", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await projectService.publishProject(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).projects.publishProject(
+        req.params.id,
+        profile
+      );
     });
   });
 
   router.post("/projects/:id/archive", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await projectService.archiveProject(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).projects.archiveProject(
+        req.params.id,
+        profile
+      );
     });
   });
 
   router.delete("/projects/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await projectService.deleteProject(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).projects.deleteProject(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
   });
 
-  // Project Sections Endpoints
+  // Project Sections Endpoints (enforces parent project visibility)
   router.get("/projects/:id/sections", (req, res) => {
     executeApiHandler(res, async () => {
-      return await projectService.getProjectSections(req.params.id);
+      const { client, profile } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).projects.getProjectSections(
+        req.params.id,
+        profile
+      );
     });
   });
 
   router.post("/projects/:id/sections", (req, res) => {
-    executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await projectService.createProjectSection(req.params.id, req.body, profile);
-    }, HTTP_STATUS.CREATED);
+    executeApiHandler(
+      res,
+      async () => {
+        const { client, profile } = await requireRequestAuthContext(req, res);
+        return await buildScopedServices(client).projects.createProjectSection(
+          req.params.id,
+          req.body,
+          profile
+        );
+      },
+      HTTP_STATUS.CREATED
+    );
   });
 
   router.put("/projects/sections/:sectionId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await projectService.updateProjectSection(req.params.sectionId, req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).projects.updateProjectSection(
+        req.params.sectionId,
+        req.body,
+        profile
+      );
     });
   });
 
   router.delete("/projects/sections/:sectionId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await projectService.deleteProjectSection(req.params.sectionId, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).projects.deleteProjectSection(
+        req.params.sectionId,
+        profile
+      );
       return { sectionId: req.params.sectionId, deleted: true };
     });
   });
 
   router.post("/projects/:id/sections/reorder", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await projectService.reorderProjectSections(req.params.id, req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).projects.reorderProjectSections(
+        req.params.id,
+        req.body,
+        profile
+      );
       return { success: true };
     });
   });
@@ -165,48 +227,72 @@ export function createBackendRouter(): Router {
   // Project Relations Endpoints
   router.post("/projects/:id/tags", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await projectService.attachTag(req.params.id, req.body.tag_id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).projects.attachTag(
+        req.params.id,
+        req.body.tag_id,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.delete("/projects/:id/tags/:tagId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await projectService.detachTag(req.params.id, req.params.tagId, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).projects.detachTag(
+        req.params.id,
+        req.params.tagId,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.post("/projects/:id/technologies", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await projectService.attachTechnology(req.params.id, req.body.technology_id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).projects.attachTechnology(
+        req.params.id,
+        req.body.technology_id,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.delete("/projects/:id/technologies/:techId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await projectService.detachTechnology(req.params.id, req.params.techId, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).projects.detachTechnology(
+        req.params.id,
+        req.params.techId,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.post("/projects/:id/media", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await projectService.attachMedia(req.params.id, req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).projects.attachMedia(
+        req.params.id,
+        req.body,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.delete("/projects/:id/media/:mediaAssetId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await projectService.detachMedia(req.params.id, req.params.mediaAssetId, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).projects.detachMedia(
+        req.params.id,
+        req.params.mediaAssetId,
+        profile
+      );
       return { success: true };
     });
   });
@@ -214,50 +300,67 @@ export function createBackendRouter(): Router {
   // Articles Endpoints
   router.get("/articles", (req, res) => {
     executeApiHandler(res, async () => {
-      const profile = await getCurrentProfile(identity(req).client || undefined);
-      return await articleService.listArticles(req.query, profile);
+      const { client, profile } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).articles.listArticles(req.query, profile);
     });
   });
 
   router.get("/articles/:slug", (req, res) => {
     executeApiHandler(res, async () => {
-      const profile = await getCurrentProfile(identity(req).client || undefined);
-      return await articleService.getArticleBySlug(req.params.slug, profile);
+      const { client, profile } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).articles.getArticleBySlug(
+        req.params.slug,
+        profile
+      );
     });
   });
 
   router.post("/articles", (req, res) => {
-    executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await articleService.createArticle(req.body, profile);
-    }, HTTP_STATUS.CREATED);
+    executeApiHandler(
+      res,
+      async () => {
+        const { client, profile } = await requireRequestAuthContext(req, res);
+        return await buildScopedServices(client).articles.createArticle(req.body, profile);
+      },
+      HTTP_STATUS.CREATED
+    );
   });
 
   router.put("/articles/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await articleService.updateArticle(req.params.id, req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).articles.updateArticle(
+        req.params.id,
+        req.body,
+        profile
+      );
     });
   });
 
   router.post("/articles/:id/publish", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await articleService.publishArticle(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).articles.publishArticle(
+        req.params.id,
+        profile
+      );
     });
   });
 
   router.post("/articles/:id/archive", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await articleService.archiveArticle(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).articles.archiveArticle(
+        req.params.id,
+        profile
+      );
     });
   });
 
   router.delete("/articles/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await articleService.deleteArticle(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).articles.deleteArticle(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
   });
@@ -265,40 +368,56 @@ export function createBackendRouter(): Router {
   // Article Relations Endpoints
   router.post("/articles/:id/tags", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await articleService.attachTag(req.params.id, req.body.tag_id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).articles.attachTag(
+        req.params.id,
+        req.body.tag_id,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.delete("/articles/:id/tags/:tagId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await articleService.detachTag(req.params.id, req.params.tagId, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).articles.detachTag(
+        req.params.id,
+        req.params.tagId,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.post("/articles/:id/technologies", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await articleService.attachTechnology(req.params.id, req.body.technology_id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).articles.attachTechnology(
+        req.params.id,
+        req.body.technology_id,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.delete("/articles/:id/technologies/:techId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await articleService.detachTechnology(req.params.id, req.params.techId, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).articles.detachTechnology(
+        req.params.id,
+        req.params.techId,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.post("/articles/:id/media", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await articleService.attachMedia(
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).articles.attachMedia(
         req.params.id,
         req.body.media_asset_id,
         req.body.role,
@@ -311,66 +430,88 @@ export function createBackendRouter(): Router {
 
   router.delete("/articles/:id/media/:mediaAssetId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await articleService.detachMedia(req.params.id, req.params.mediaAssetId, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).articles.detachMedia(
+        req.params.id,
+        req.params.mediaAssetId,
+        profile
+      );
       return { success: true };
     });
   });
 
-  // Labs Endpoints
+  // Labs Endpoints (archived labs strictly hidden from public callers)
   router.get("/labs", (req, res) => {
     executeApiHandler(res, async () => {
-      return await labService.listLabs(req.query);
+      const { client, profile } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).labs.listLabs(req.query, profile);
     });
   });
 
   router.get("/labs/:slug", (req, res) => {
     executeApiHandler(res, async () => {
-      return await labService.getLabBySlug(req.params.slug);
+      const { client, profile } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).labs.getLabBySlug(req.params.slug, profile);
     });
   });
 
   router.post("/labs", (req, res) => {
-    executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await labService.createLab(req.body, profile);
-    }, HTTP_STATUS.CREATED);
+    executeApiHandler(
+      res,
+      async () => {
+        const { client, profile } = await requireRequestAuthContext(req, res);
+        return await buildScopedServices(client).labs.createLab(req.body, profile);
+      },
+      HTTP_STATUS.CREATED
+    );
   });
 
   router.put("/labs/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await labService.updateLab(req.params.id, req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).labs.updateLab(
+        req.params.id,
+        req.body,
+        profile
+      );
     });
   });
 
   router.post("/labs/:id/archive", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await labService.archiveLab(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).labs.archiveLab(req.params.id, profile);
     });
   });
 
   router.delete("/labs/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await labService.deleteLab(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).labs.deleteLab(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
   });
 
   router.post("/labs/:id/media", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await labService.attachMedia(req.params.id, req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).labs.attachMedia(
+        req.params.id,
+        req.body,
+        profile
+      );
       return { success: true };
     });
   });
 
   router.delete("/labs/:id/media/:mediaAssetId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await labService.detachMedia(req.params.id, req.params.mediaAssetId, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).labs.detachMedia(
+        req.params.id,
+        req.params.mediaAssetId,
+        profile
+      );
       return { success: true };
     });
   });
@@ -378,59 +519,89 @@ export function createBackendRouter(): Router {
   // Knowledge Endpoints
   router.get("/knowledge", (req, res) => {
     executeApiHandler(res, async () => {
-      return await knowledgeService.listConcepts(req.query);
+      const { client } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).knowledge.listConcepts(req.query);
+    });
+  });
+
+  router.get("/knowledge/graph", (req, res) => {
+    executeApiHandler(res, async () => {
+      const { client, profile } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).knowledge.getKnowledgeGraph(profile);
     });
   });
 
   router.get("/knowledge/:slug", (req, res) => {
     executeApiHandler(res, async () => {
-      return await knowledgeService.getConceptBySlug(req.params.slug);
+      const { client } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).knowledge.getConceptBySlug(req.params.slug);
     });
   });
 
   router.post("/knowledge", (req, res) => {
-    executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await knowledgeService.createConcept(req.body, profile);
-    }, HTTP_STATUS.CREATED);
+    executeApiHandler(
+      res,
+      async () => {
+        const { client, profile } = await requireRequestAuthContext(req, res);
+        return await buildScopedServices(client).knowledge.createConcept(req.body, profile);
+      },
+      HTTP_STATUS.CREATED
+    );
   });
 
   router.put("/knowledge/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await knowledgeService.updateConcept(req.params.id, req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).knowledge.updateConcept(
+        req.params.id,
+        req.body,
+        profile
+      );
     });
   });
 
   router.delete("/knowledge/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await knowledgeService.deleteConcept(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).knowledge.deleteConcept(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
   });
 
   router.get("/knowledge/content/:type/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      return await knowledgeService.getConceptsForContent(
-        req.params.type as "project" | "article" | "lab",
-        req.params.id
-      );
+      const { client, profile } = await resolveRequestAuthContext(req, res);
+      const services = buildScopedServices(client);
+      const contentType = req.params.type as "project" | "article" | "lab";
+      const contentId = req.params.id;
+
+      // Enforce visibility of target content item before returning linked concepts
+      if (contentType === "project") {
+        await services.projects.getProjectById(contentId, profile);
+      } else if (contentType === "article") {
+        await services.articles.getArticleById(contentId, profile);
+      } else if (contentType === "lab") {
+        await services.labs.getLabById(contentId, profile);
+      } else {
+        throw new ValidationError("Content type must be 'project', 'article', or 'lab'.");
+      }
+
+      return await services.knowledge.getConceptsForContent(contentType, contentId);
     });
   });
 
   router.post("/knowledge/content", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await knowledgeService.attachContentConcept(req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).knowledge.attachContentConcept(req.body, profile);
       return { success: true };
     });
   });
 
   router.delete("/knowledge/content/:type/:id/:conceptId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await knowledgeService.detachContentConcept(
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).knowledge.detachContentConcept(
         req.params.type as "project" | "article" | "lab",
         req.params.id,
         req.params.conceptId,
@@ -442,81 +613,127 @@ export function createBackendRouter(): Router {
 
   router.get("/knowledge/:id/related", (req, res) => {
     executeApiHandler(res, async () => {
-      return await knowledgeService.getRelatedConcepts(req.params.id);
+      const { client } = await resolveRequestAuthContext(req, res);
+      return await buildScopedServices(client).knowledge.getRelatedConcepts(req.params.id);
     });
   });
 
   router.post("/knowledge/relationships", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await knowledgeService.linkConcepts(req.body, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).knowledge.linkConcepts(req.body, profile);
       return { success: true };
     });
   });
 
   router.delete("/knowledge/relationships/:sourceId/:targetId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await knowledgeService.unlinkConcepts(req.params.sourceId, req.params.targetId, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).knowledge.unlinkConcepts(
+        req.params.sourceId,
+        req.params.targetId,
+        profile
+      );
       return { success: true };
     });
   });
 
-  // Media Endpoints
+  // Media Endpoints (protected CMS library surface)
   router.get("/media", (req, res) => {
     executeApiHandler(res, async () => {
-      return await mediaService.listMedia(req.query);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).media.listMedia(req.query, profile);
     });
   });
 
   router.get("/media/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      return await mediaService.getMediaById(req.params.id);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      return await buildScopedServices(client).media.getMediaById(req.params.id, profile);
     });
   });
 
   router.post("/media", (req, res) => {
-    executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      return await mediaService.registerMedia(req.body, profile);
-    }, HTTP_STATUS.CREATED);
+    executeApiHandler(
+      res,
+      async () => {
+        const { client, profile } = await requireRequestAuthContext(req, res);
+        return await buildScopedServices(client).media.registerMedia(req.body, profile);
+      },
+      HTTP_STATUS.CREATED
+    );
   });
 
   router.delete("/media/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      await mediaService.deleteMedia(req.params.id, profile);
+      const { client, profile } = await requireRequestAuthContext(req, res);
+      await buildScopedServices(client).media.deleteMedia(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
   });
 
   // ==========================================
-  // Phase D: Intelligence Layer Endpoints
+  // Intelligence & Search Layer Endpoints
   // ==========================================
-  const hybridSearchService = new HybridSearchService();
   const tovuService = new TovuService();
-  const doomService = tovuService;
   const contentIndexer = new ContentIndexer();
   const conversationService = new ConversationService();
+
+  function enforceRateLimit(
+    res: Response,
+    rateKey: string,
+    options: { windowMs: number; maxRequests: number },
+    message: string
+  ) {
+    const rateCheck = checkRateLimit(rateKey, options);
+    res.setHeader("X-RateLimit-Limit", String(rateCheck.limit));
+    res.setHeader("X-RateLimit-Remaining", String(rateCheck.remaining));
+    res.setHeader("X-RateLimit-Reset", String(Math.ceil(rateCheck.resetInMs / 1000)));
+
+    if (!rateCheck.allowed) {
+      res.setHeader("Retry-After", String(rateCheck.retryAfterSeconds));
+      throw new TooManyRequestsError(message, {
+        resetInMs: rateCheck.resetInMs,
+        retryAfterSeconds: rateCheck.retryAfterSeconds,
+      });
+    }
+  }
 
   // Search Endpoint (Lexical + Semantic Hybrid Search)
   router.get("/search", (req, res) => {
     executeApiHandler(res, async () => {
+      const { client, user, profile } = await resolveRequestAuthContext(req, res);
+      const clientIp = getClientIp(req);
+      const rateKey = user ? `search:user:${user.id}` : `search:ip:${clientIp}`;
+      enforceRateLimit(
+        res,
+        rateKey,
+        { windowMs: 60_000, maxRequests: 60 },
+        "Search rate limit reached. Please wait a moment before searching again."
+      );
+
       const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
       if (!q) {
         throw new ValidationError("Search query parameter 'q' is required");
       }
 
-      const limit = req.query.limit ? Math.min(30, Math.max(1, parseInt(String(req.query.limit), 10))) : 10;
+      assertSupabaseConfigured(false);
+
+      const limit = req.query.limit
+        ? Math.min(30, Math.max(1, parseInt(String(req.query.limit), 10) || 10))
+        : 10;
       const typeParam = typeof req.query.types === "string" ? req.query.types : undefined;
       const sourceTypes = typeParam
         ? (typeParam.split(",").map((s) => s.trim()) as any)
         : undefined;
 
-      const profile = await getCurrentProfile(identity(req).client || undefined);
-      const includeDrafts = Boolean(profile && ["admin", "creator"].includes(profile.role));
+      const includeDrafts = canAccessCommandCenter(profile);
+      const { LexicalSearchService } = await import("../search/lexical");
+      const scopedSearch = new HybridSearchService(
+        new LexicalSearchService(client || undefined)
+      );
 
-      return await hybridSearchService.search({
+      return await scopedSearch.search({
         query: q,
         sourceTypes,
         limit,
@@ -526,16 +743,29 @@ export function createBackendRouter(): Router {
   });
 
   // Tovu Intelligence Assistant Endpoint (Canonical)
-  const handleTovuQuery = (req: any, res: any) => {
+  const handleTovuQuery = (req: Request, res: Response) => {
     executeApiHandler(res, async () => {
-      const caller = requireVisitorSession(req);
-      const rateCheck = checkRateLimit(caller.visitorSession, { windowMs: 60_000, maxRequests: 30 });
-      if (!rateCheck.allowed) throw new TooManyRequestsError("Tovu query limit reached.", { resetInMs: rateCheck.resetInMs });
-      const { sessionId: _ignoredSession, userId: _ignoredUser, ...safeBody } = req.body || {};
+      const { sessionId } = resolveOrIssueVisitorSession(req, res);
+      const { user } = await resolveRequestAuthContext(req, res);
+      const clientIp = getClientIp(req);
+
+      const rateKey = user ? `tovu:user:${user.id}` : `tovu:ip:${clientIp}`;
+      enforceRateLimit(
+        res,
+        rateKey,
+        { windowMs: 60_000, maxRequests: 30 },
+        "Tovu query limit reached. Please wait before asking further questions."
+      );
+
+      // Never trust caller-supplied sessionId or userId in req.body
+      const { message, conversationId, context } = req.body || {};
+
       return await tovuService.ask({
-        ...safeBody,
-        userId: caller.user?.id,
-        sessionId: caller.visitorSession,
+        message,
+        conversationId,
+        context,
+        userId: user?.id,
+        sessionId,
       });
     });
   };
@@ -543,30 +773,51 @@ export function createBackendRouter(): Router {
   router.post("/tovu", handleTovuQuery);
   router.post("/tovu/ask", handleTovuQuery);
 
-  // Deprecated compatibility wrapper for legacy /doom endpoint
-  router.post("/doom", handleTovuQuery);
-  router.post("/doom/ask", handleTovuQuery);
-
-  // Conversation retrieval with session boundary enforcement
+  // Conversation retrieval with strict cryptographic session or authenticated user ownership
   router.get("/conversations/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const caller = requireVisitorSession(req);
-      const conv = await conversationService.getConversation(req.params.id, caller.visitorSession, caller.user?.id);
-      const messages = await conversationService.listMessages(req.params.id, 20, caller.visitorSession, caller.user?.id);
+      const { sessionId } = resolveOrIssueVisitorSession(req, res);
+      const { user } = await resolveRequestAuthContext(req, res);
+      const clientIp = getClientIp(req);
+      const rateKey = user ? `conv:user:${user.id}` : `conv:ip:${clientIp}`;
+      enforceRateLimit(
+        res,
+        rateKey,
+        { windowMs: 60_000, maxRequests: 60 },
+        "Conversation lookup rate limit reached."
+      );
+
+      const conv = await conversationService.getConversation(
+        req.params.id,
+        sessionId,
+        user?.id
+      );
+      const messages = await conversationService.listMessages(req.params.id, 20);
+
       return {
-        conversation: conv,
+        conversation: toPublicConversation(conv),
         messages,
       };
     });
   });
 
-  // Content Indexing Endpoint (Admin only)
+  // Content Indexing Endpoint (Admin only, rate-limited)
   router.post("/intelligence/index", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext(identity(req).client || undefined);
-      if (profile.role !== "admin") {
-        throw new AuthorizationError("Only administrators can trigger full system vector indexing");
+      const { profile } = await requireRequestAuthContext(req, res);
+      if (!canManageSystem(profile)) {
+        throw new AuthorizationError(
+          "Only administrators can trigger full system vector indexing."
+        );
       }
+
+      enforceRateLimit(
+        res,
+        `index:admin:${profile?.id || "system"}`,
+        { windowMs: 60_000, maxRequests: 10 },
+        "Indexing trigger rate limit reached."
+      );
+
       return await contentIndexer.indexAll();
     });
   });

@@ -6,14 +6,33 @@ import { createSupabaseAdminClient } from "../../supabase/admin";
 import { isSupabaseConfigured } from "../../shared/env";
 import { ForbiddenError, NotFoundError, DatabaseError } from "../../shared/errors";
 
-export interface ConversationRecord {
-  id: string; sessionId: string; userId: string | null; title: string | null;
-  createdAt: string; updatedAt: string;
+export interface PublicConversationRecord {
+  id: string;
+  userId: string | null;
+  title: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
+
+export interface ConversationRecord extends PublicConversationRecord {
+  sessionId: string;
+}
+
 export interface MessageRecord {
   id: string; conversationId: string; role: "user" | "assistant" | "system";
   content: string; metadata: Record<string, unknown> | null; createdAt: string;
 }
+
+export function toPublicConversation(conv: ConversationRecord): PublicConversationRecord {
+  return {
+    id: conv.id,
+    userId: conv.userId,
+    title: conv.title,
+    createdAt: conv.createdAt,
+    updatedAt: conv.updatedAt,
+  };
+}
+
 export class ConversationService {
   constructor(private readonly injectedClient?: SupabaseClient<Database>) {}
   private client(): SupabaseClient<Database> {
@@ -43,6 +62,62 @@ export class ConversationService {
     if (record.sessionId !== sessionId && !(userId && record.userId === userId)) {
       throw new ForbiddenError("Access denied to conversation");
     }
+
+    if (!conv) {
+      throw new NotFoundError("Conversation", id);
+    }
+
+    // Strict Security Isolation: ensure visitor cannot read or mutate another's conversation
+    const isSessionOwner = Boolean(sessionId && conv.sessionId === sessionId);
+    const isUserOwner = Boolean(userId && conv.userId && conv.userId === userId);
+
+    if (!isSessionOwner && !isUserOwner) {
+      throw new ForbiddenError("Access denied to conversation: session mismatch");
+    }
+
+    return conv;
+  }
+
+  /**
+   * Appends a message to an existing conversation
+   */
+  async addMessage(
+    conversationId: string,
+    role: "user" | "assistant" | "system",
+    content: string,
+    metadata?: Record<string, unknown>
+  ): Promise<MessageRecord> {
+    const id = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const now = new Date().toISOString();
+
+    const record: MessageRecord = {
+      id,
+      conversationId,
+      role,
+      content,
+      metadata: metadata || null,
+      createdAt: now,
+    };
+
+    try {
+      const client = await this.getClient();
+      if (client) {
+        await client.from("ai_messages").insert({
+          id: record.id,
+          conversation_id: record.conversationId,
+          role: record.role,
+          content: record.content,
+          metadata: (record.metadata as any) || {},
+        });
+      }
+    } catch {
+      // Fall through
+    }
+
+    const list = ConversationService.memoryMessages.get(conversationId) || [];
+    list.push(record);
+    ConversationService.memoryMessages.set(conversationId, list);
+
     return record;
   }
   async addMessage(conversationId: string, role: "user" | "assistant" | "system",

@@ -24,8 +24,8 @@ export const listLabsAction = createSafeAction(
     schema: labFilterSchema,
     actionName: "labs:list",
   },
-  async (input) => {
-    return service.listLabs(input);
+  async (input, { profile }) => {
+    return service.listLabs(input, profile);
   }
 );
 
@@ -34,8 +34,8 @@ export const getLabAction = createSafeAction(
     schema: z.object({ slug: z.string().min(1) }),
     actionName: "labs:getBySlug",
   },
-  async ({ slug }) => {
-    return service.getLabBySlug(slug);
+  async ({ slug }, { profile }) => {
+    return service.getLabBySlug(slug, profile);
   }
 );
 
@@ -44,8 +44,8 @@ export const getLabByIdAction = createSafeAction(
     schema: z.object({ id: z.string().uuid() }),
     actionName: "labs:getById",
   },
-  async ({ id }) => {
-    return service.getLabById(id);
+  async ({ id }, { profile }) => {
+    return service.getLabById(id, profile);
   }
 );
 

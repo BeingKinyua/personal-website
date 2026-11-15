@@ -9,7 +9,9 @@ export type ArticleRow = Database["public"]["Tables"]["articles"]["Row"];
 export type ArticleInsert = Database["public"]["Tables"]["articles"]["Insert"];
 export type ArticleUpdate = Database["public"]["Tables"]["articles"]["Update"];
 
-export interface Article extends ArticleRow {}
+export interface Article extends ArticleRow {
+  tags?: { id: string; name: string; slug: string }[];
+}
 
 export interface ArticleFilter {
   status?: ContentStatus;

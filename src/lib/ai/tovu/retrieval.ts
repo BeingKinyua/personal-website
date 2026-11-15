@@ -74,6 +74,3 @@ export class TovuRetrievalService {
     }));
   }
 }
-
-// Backwards-compatible alias
-export const DoomRetrievalService = TovuRetrievalService;

@@ -1,0 +1,1157 @@
+# TOVU — Platform Integration, Intelligence Consolidation & Production Hardening
+
+## Implementation Prompt — Phase 2
+
+### Role
+
+Act as a senior full-stack software engineer, application architect, Supabase specialist, and security-conscious technical lead.
+
+You are working on **Tovu**, an intelligent personal portfolio combining software engineering, artificial intelligence, writing, experimentation, and interconnected knowledge.
+
+The application's UI/UX has recently undergone a major refinement using the `frontend-design` skill.
+
+Your task is to **strengthen the underlying application without compromising the completed visual redesign**.
+
+This is a production implementation task, not a request for conceptual recommendations.
+
+---
+
+# 1. Project Context
+
+**Repository:** https://github.com/BeingKinyua/personal-website
+
+**Live application:** https://personal-website-hazel-five-68.vercel.app/
+
+The repository previously used:
+
+- React 19
+- Vite 6
+- TypeScript
+- Tailwind CSS v4
+- GSAP
+- Lenis
+- Express
+- Supabase
+- Gemini AI
+- Custom retrieval-augmented generation services
+
+These are historical inspection findings. Inspect the current repository and package manifest before assuming the stack remains unchanged.
+
+The platform contains the following public modules:
+
+1. Home / Hero
+2. Work
+3. Journal
+4. Lab
+5. Knowledge
+6. About
+7. Contact
+8. Tovu Intelligence
+9. Command Palette
+10. Immersive Project and Journal Readers
+
+The system also contains backend services, Supabase integrations, AI indexing, content retrieval, and conversation management.
+
+## Core objective
+
+Transform Tovu from a collection of individually implemented features into a **cohesive, database-driven, secure, production-ready platform**.
+
+The intended architecture is:
+
+```text
+TOVU PLATFORM
+│
+├── PUBLIC EXPERIENCE
+│   ├── Home
+│   ├── Work
+│   ├── Journal
+│   ├── Lab
+│   ├── Knowledge
+│   ├── About
+│   ├── Contact
+│   ├── Command Palette
+│   └── Tovu Intelligence
+│
+├── APPLICATION SERVICES
+│   ├── Content Services
+│   ├── Search
+│   ├── Authentication
+│   ├── Authorization
+│   ├── Media Management
+│   ├── Publishing
+│   └── AI Orchestration
+│
+├── DATA & INTELLIGENCE
+│   ├── Supabase PostgreSQL
+│   ├── Supabase Storage
+│   ├── Full-text Search
+│   ├── Vector Embeddings
+│   ├── Hybrid Retrieval
+│   └── AI Conversations
+│
+└── FUTURE PRIVATE COMMAND CENTER
+    ├── Content Management
+    ├── Knowledge Management
+    ├── Media Library
+    ├── Intelligence Operations
+    └── Platform Monitoring
+```
+
+Do not implement the complete private Command Center in this phase.
+
+Prepare the backend so that it can be developed subsequently.
+
+---
+
+# 2. Non-Negotiable Constraints
+
+The completed UI/UX redesign must be preserved.
+
+Do not:
+
+- Redesign the navbar.
+- Reduce the new typography scale.
+- Revert the hero.
+- Remove Reactive Digital Rain.
+- Replace the current visual design system.
+- Remove GSAP interactions.
+- Break immersive readers.
+- Replace the existing Work exhibition.
+- Introduce a different UI framework.
+- Change established user journeys without justification.
+- Rebuild functioning components unnecessarily.
+- Delete content or database records without authorization.
+
+The frontend should continue to behave as designed.
+
+Focus primarily on application architecture, integration, security, reliability, and data consistency.
+
+Any frontend changes should be limited to those necessary to connect real data, support new states, improve accessibility, or correct functional issues.
+
+---
+
+# 3. Phase A — Repository and Architecture Audit
+
+Before modifying code, inspect the current repository.
+
+Determine:
+
+1. Current frontend framework and build system.
+2. Backend runtime and deployment configuration.
+3. Current authentication implementation.
+4. Supabase client initialization.
+5. Existing repositories and domain services.
+6. Public API endpoints.
+7. Tovu Intelligence implementation.
+8. Static content dependencies.
+9. Search implementation.
+10. Content indexing process.
+11. Conversation storage and retrieval.
+12. Routing and deep-link behavior.
+13. Existing tests and CI workflows.
+14. Environment variables.
+15. Error handling and logging.
+16. Current production deployment configuration.
+
+Pay particular attention to the previously identified files:
+
+```text
+src/lib/api/router.ts
+src/lib/auth/session.ts
+src/lib/supabase/server.ts
+src/lib/supabase/admin.ts
+src/lib/ai/tovu/service.ts
+src/lib/ai/conversations/service.ts
+src/services/tovu.ts
+src/services/doom.ts
+src/services/projectService.ts
+src/services/articleService.ts
+src/data/projects.ts
+src/data/articles.ts
+src/data/experiments.ts
+src/data/knowledge.ts
+server.ts
+```
+
+These paths may have changed following the UI revamp.
+
+Discover their current equivalents rather than recreating old structures.
+
+## Audit deliverable
+
+Produce a concise architecture report identifying:
+
+- Existing working implementations
+- Duplicate functionality
+- Security concerns
+- Missing integrations
+- Data consistency problems
+- Deployment risks
+- Recommended file changes
+
+Classify findings by severity:
+
+- P0 — Security or critical correctness
+- P1 — Core functionality and integration
+- P2 — Reliability and maintainability
+- P3 — Optional enhancement
+
+Proceed with implementation after the audit.
+
+---
+
+# 4. Phase B — Authentication and Authorization Hardening
+
+**This is the highest-priority engineering workstream.**
+
+The earlier repository inspection revealed potential weaknesses in request-scoped authentication and AI conversation ownership.
+
+Verify whether these issues still exist.
+
+## 4.1 Request-scoped authentication
+
+Ensure all protected API requests derive the authenticated user from verified request credentials.
+
+Do not rely on authentication helpers that read an unrelated global or browser session.
+
+For Express, implement a request-scoped authentication mechanism using the existing Supabase Auth configuration.
+
+Conceptual flow:
+
+```text
+Incoming request
+      ↓
+Extract verified credentials
+      ↓
+Validate with Supabase Auth
+      ↓
+Resolve authenticated user
+      ↓
+Load authorized profile and role
+      ↓
+Execute permitted operation
+```
+
+Use a consistent authentication middleware or request-context abstraction.
+
+Do not trust user IDs, roles, or email addresses supplied in request bodies.
+
+## 4.2 Authorization
+
+Apply authorization at the service boundary.
+
+Public visitors may read published content only.
+
+Administrative operations require authenticated, authorized users.
+
+Ensure that:
+
+- Draft content remains private.
+- Archived content is not publicly exposed.
+- Publishing requires an authorized role.
+- Media mutations require authorization.
+- Content deletion requires authorization.
+- Intelligence indexing is restricted.
+- Internal AI records are not publicly accessible.
+
+Preserve existing Supabase RLS policies.
+
+Review the interaction between application authorization and database-level RLS.
+
+Do not assume that application checks alone are sufficient.
+
+## 4.3 Service-role isolation
+
+Supabase service-role credentials must remain server-only.
+
+Never expose them through:
+
+- Vite client environment variables
+- Browser bundles
+- Public API responses
+- Client-side imports
+- Error messages
+- Application logs
+
+Audit the import graph to ensure server-only modules cannot be bundled into the frontend.
+
+## 4.4 Anonymous visitor sessions
+
+Tovu Intelligence supports public visitors.
+
+Implement secure anonymous conversation sessions.
+
+Do not rely solely on arbitrary session identifiers supplied by the browser.
+
+Use server-issued, unpredictable session credentials or another secure, verifiable session mechanism.
+
+Prefer HttpOnly, Secure, SameSite cookies where appropriate.
+
+Support authenticated-user conversations separately.
+
+## 4.5 Conversation authorization
+
+Before returning conversation metadata or messages:
+
+1. Validate the visitor's session.
+2. Resolve the conversation.
+3. Verify ownership.
+4. Retrieve only messages belonging to that authorized conversation.
+5. Return a sanitized response.
+
+Avoid exposing conversation existence through unnecessarily detailed authorization errors.
+
+Do not permit callers to retrieve another visitor's messages by supplying a known conversation ID.
+
+## Acceptance criteria
+
+- Unauthorized writes fail.
+- Public visitors cannot read drafts.
+- Visitors cannot access another visitor's conversations.
+- Service-role credentials never reach the browser.
+- Authentication is correctly bound to each incoming request.
+- Existing authorized workflows remain functional.
+
+---
+
+# 5. Phase C — Establish Supabase as the Single Source of Truth
+
+The previous implementation contained static content arrays alongside database-backed services.
+
+This creates two competing sources of truth.
+
+Eliminate that architectural inconsistency.
+
+## 5.1 Canonical content model
+
+Use the existing Supabase schema for:
+
+- Projects
+- Project sections
+- Articles
+- Labs
+- Concepts
+- Concept relationships
+- Technologies
+- Categories
+- Tags
+- Media assets
+- Content relationships
+
+Inspect the current database schema and generated types before implementing queries.
+
+Do not recreate tables that already exist.
+
+Do not change schema definitions unless a verified requirement cannot be supported by the existing model.
+
+## 5.2 Public content services
+
+Establish a consistent data access flow:
+
+```text
+React Components
+       ↓
+Typed Client API
+       ↓
+Express Route Handlers
+       ↓
+Domain Services
+       ↓
+Repositories
+       ↓
+Supabase
+```
+
+All public content modules should use the same underlying content source.
+
+Avoid direct service-role database access from React components.
+
+## 5.3 Projects
+
+Connect the Work module to published project records.
+
+Support:
+
+- Featured projects
+- Project ordering
+- Slugs
+- Categories
+- Technologies
+- Cover images
+- Project summaries
+- Project sections
+- Related concepts
+- Live demo links
+- GitHub links
+- Publication status
+
+Preserve the existing horizontal exhibition.
+
+The data source should change without requiring a redesign.
+
+## 5.4 Articles
+
+Connect Journal to published article records.
+
+Support:
+
+- Title
+- Slug
+- Summary
+- Cover image
+- Author
+- Publication date
+- Reading time
+- Tags
+- Categories
+- Article sections
+- Related projects
+- Related concepts
+
+Preserve the immersive reader.
+
+## 5.5 Labs
+
+Connect the Lab module to published experiment records.
+
+Support:
+
+- Experiment title
+- Description
+- Status
+- Technologies
+- Hypothesis
+- Implementation notes
+- Findings
+- Related projects
+- Associated media
+
+Adapt to the existing schema rather than assuming all fields already exist.
+
+## 5.6 Knowledge
+
+Replace static concept and relationship arrays with database-backed records.
+
+Use:
+
+```text
+concepts
+concept_relationships
+content_concepts
+```
+
+Support connections between:
+
+- Concepts
+- Projects
+- Articles
+- Experiments
+
+The Knowledge interface should reflect actual database relationships.
+
+## 5.7 Migration of existing static content
+
+Do not simply delete the existing static data.
+
+First:
+
+1. Inventory existing records.
+2. Compare them with Supabase content.
+3. Identify missing and duplicate entries.
+4. Map fields to the canonical schema.
+5. Prepare an idempotent import process.
+6. Validate relationships and media references.
+7. Obtain approval before destructive operations.
+8. Switch public reads to Supabase.
+9. Retire obsolete static sources only after verification.
+
+Preserve existing slugs and public URLs wherever possible.
+
+## 5.8 Loading and error states
+
+Ensure each module supports:
+
+- Loading
+- Empty
+- Success
+- Error
+- Retry
+
+Do not silently substitute unrelated demonstration content when the database is unavailable.
+
+Development fixtures may remain available behind explicit development-only configuration.
+
+---
+
+# 6. Phase D — Consolidate Tovu Intelligence
+
+The repository previously contained multiple AI-related implementations, including legacy Doom code and a separate `/api/chat` handler.
+
+Consolidate these into one canonical intelligence architecture.
+
+## 6.1 Canonical service
+
+Use Tovu Intelligence as the single AI service.
+
+Recommended structure:
+
+```text
+src/lib/ai/
+├── tovu/
+│   ├── service.ts
+│   ├── intent.ts
+│   ├── retrieval.ts
+│   ├── context.ts
+│   ├── response.ts
+│   └── prompts/
+├── embeddings/
+├── conversations/
+└── providers/
+```
+
+Adapt to the current repository.
+
+Do not duplicate existing working services.
+
+## 6.2 Canonical endpoint
+
+Standardize public AI requests through one documented endpoint.
+
+For example:
+
+```text
+POST /api/tovu
+```
+
+If a versioned API convention already exists, follow it.
+
+Update all frontend consumers to use the canonical endpoint.
+
+Remove obsolete endpoints only after checking dependencies and maintaining compatibility where required.
+
+## 6.3 Retrieval-augmented generation
+
+Tovu should answer questions using published portfolio information.
+
+Use the existing retrieval architecture:
+
+```text
+Visitor question
+      ↓
+Input validation
+      ↓
+Intent classification
+      ↓
+Hybrid retrieval
+      ↓
+Evidence selection
+      ↓
+Context assembly
+      ↓
+LLM generation
+      ↓
+Response validation
+      ↓
+References + actions
+```
+
+Support questions about:
+
+- Projects
+- Technologies
+- Engineering decisions
+- Articles
+- Experiments
+- Knowledge concepts
+- Professional background
+- Portfolio navigation
+
+Do not allow public retrieval of unpublished or private content.
+
+## 6.4 Grounded responses
+
+Require the assistant to distinguish between:
+
+- Verified portfolio information
+- General knowledge
+- Inferences
+- Unavailable information
+
+Do not fabricate project details, links, metrics, or experience.
+
+Validate references against actual published records.
+
+If retrieval fails, communicate the limitation instead of presenting invented evidence.
+
+## 6.5 Structured response contract
+
+Use a consistent response shape.
+
+Example:
+
+```ts
+interface TovuResponse {
+  message: string;
+  references: Array<{
+    id: string;
+    type: "project" | "article" | "lab" | "concept";
+    title: string;
+    slug?: string;
+  }>;
+  actions: Array<{
+    label: string;
+    action: "navigate" | "open";
+    target: string;
+  }>;
+  conversationId?: string;
+}
+```
+
+Adapt this interface to existing validated schemas.
+
+Ensure actions reference actual application destinations.
+
+## 6.6 Conversation persistence
+
+Persist conversations using the existing database where configured.
+
+Implement:
+
+- Secure conversation creation
+- Authorized retrieval
+- Message ordering
+- Pagination
+- Error handling
+- Session isolation
+- Conversation continuation
+
+Do not silently claim persistence when the application is using an ephemeral fallback.
+
+## 6.7 Rate limiting and cost controls
+
+Implement production-suitable rate limiting.
+
+Do not rely solely on an in-memory Map in a serverless deployment.
+
+Use a suitable shared store or managed rate-limiting mechanism.
+
+Apply limits to:
+
+- AI queries
+- Expensive semantic searches
+- Conversation creation
+- Indexing operations
+
+Include request size limits, timeouts, and sensible provider error handling.
+
+---
+
+# 7. Phase E — Search and Command Palette Integration
+
+The public Command Palette and Tovu Intelligence serve different purposes.
+
+Preserve this distinction.
+
+## Command Palette
+
+Responsible for:
+
+- Fast navigation
+- Exact and fuzzy search
+- Keyboard shortcuts
+- Content filtering
+- Opening projects
+- Opening articles
+- Opening experiments
+- Opening knowledge concepts
+
+## Tovu Intelligence
+
+Responsible for:
+
+- Natural-language questions
+- Contextual explanations
+- Reasoning over retrieved content
+- Related content recommendations
+- Guided exploration
+
+## Implementation
+
+Connect the Command Palette to the canonical search service.
+
+Support:
+
+- Debounced queries
+- Request cancellation
+- Keyboard navigation
+- Result grouping
+- Loading indicators
+- Empty results
+- Search errors
+- Direct navigation
+
+Search results must reflect published content.
+
+Do not maintain a separate, contradictory static search index.
+
+Keep the Command Palette fast even when the AI service is unavailable.
+
+Rename the public `CommandCenter` component to `CommandPalette` if this remains appropriate after inspection.
+
+Reserve the name **Command Center** for the future authenticated administration application.
+
+---
+
+# 8. Phase F — Content Indexing and Synchronization
+
+The earlier server implementation triggered full content indexing during application startup.
+
+This is not an appropriate default for production.
+
+## Required changes
+
+Remove automatic full indexing from ordinary server startup.
+
+Implement a controlled indexing lifecycle.
+
+```text
+Content created or updated
+          ↓
+Content published
+          ↓
+Indexing job scheduled
+          ↓
+Content normalized
+          ↓
+Chunks generated
+          ↓
+Embeddings generated
+          ↓
+Search index updated
+          ↓
+Tovu retrieval updated
+```
+
+Support:
+
+- New content
+- Updated content
+- Republished content
+- Archived content
+- Deleted content
+- Changed relationships
+
+Ensure unpublished content cannot remain exposed through stale public embeddings or search results.
+
+Use deterministic chunk identifiers where practical.
+
+Make indexing idempotent.
+
+Avoid regenerating embeddings for unchanged content.
+
+Provide a restricted manual reindex operation.
+
+If no production job infrastructure exists, implement the smallest reliable solution supported by the deployment environment and document its limitations.
+
+Do not introduce a complex queue system without justification.
+
+---
+
+# 9. Phase G — Immersive Readers and Deep Links
+
+Preserve the redesigned Project and Journal readers.
+
+Improve their routing and lifecycle behavior.
+
+## Direct navigation
+
+Support URLs such as:
+
+```text
+/work/project-slug
+/journal/article-slug
+```
+
+Users must be able to:
+
+- Open a reader from the portfolio.
+- Copy its URL.
+- Open the URL in a new browser tab.
+- Refresh the page.
+- Navigate backward.
+- Navigate forward.
+- Close the reader and return to the previous context.
+
+## Reader behavior
+
+Ensure:
+
+- Focus enters the reader appropriately.
+- Keyboard focus remains inside modal-style readers.
+- Escape closes the reader when appropriate.
+- Focus returns to the invoking control.
+- Background interaction is disabled.
+- Background scroll position is preserved.
+- Reader scrolling is independent.
+- Nested settings and audio dialogs work correctly.
+
+## Search engine visibility
+
+Evaluate the current Vite/Express routing implementation.
+
+Provide a technically sound strategy for indexable project and article pages.
+
+Possible approaches include:
+
+- Route-specific server rendering
+- Prerendering
+- Static generation
+- A future Next.js migration
+
+Do not claim client-side metadata changes alone provide equivalent SEO to server-rendered content.
+
+Document the recommended approach and implement only what fits the approved architecture.
+
+---
+
+# 10. Phase H — Media and Asset Integration
+
+Use Supabase Storage for portfolio media.
+
+Support:
+
+- Project cover images
+- Project screenshots
+- Journal cover images
+- Journal illustrations
+- Lab media
+- Concept imagery where applicable
+
+Implement consistent media references.
+
+Do not hardcode production image URLs across components.
+
+Support responsive image sizing, lazy loading, meaningful alternative text, and loading placeholders.
+
+Preserve existing assets.
+
+Do not delete or overwrite storage objects without authorization.
+
+---
+
+# 11. Phase I — Application Reliability
+
+Standardize error handling across the application.
+
+## API errors
+
+Use a consistent error structure.
+
+Example:
+
+```ts
+interface ApiError {
+  code: string;
+  message: string;
+  details?: unknown;
+}
+```
+
+Do not expose sensitive internal details to visitors.
+
+## Frontend behavior
+
+Provide appropriate states for:
+
+- Failed content requests
+- Missing articles
+- Missing projects
+- AI provider failures
+- Search failures
+- Expired sessions
+- Network timeouts
+- Unauthorized operations
+
+Avoid generic success messages when an operation has not completed.
+
+## Logging
+
+Implement structured server-side logging.
+
+Include:
+
+- Request identifiers
+- Operation names
+- Duration
+- Error categories
+- Relevant non-sensitive context
+
+Never log API keys, authorization tokens, raw session secrets, or sensitive conversation contents by default.
+
+---
+
+# 12. Phase J — Contact and Audio Functionality
+
+## Contact
+
+Inspect the existing contact implementation.
+
+If it uses `mailto:`, preserve that behavior unless a real delivery integration is available.
+
+Do not present opening an email client as successful message delivery.
+
+Improve the interaction states accordingly.
+
+If implementing server-side contact delivery, require:
+
+- Validated form data
+- Spam protection
+- Rate limiting
+- Reliable email delivery
+- Explicit success/failure feedback
+
+## Audio
+
+Inspect the current audio experience.
+
+Distinguish between:
+
+- Functional ambient playback
+- Functional narration
+- Placeholder Spotify integration
+- Unavailable audio features
+
+Do not advertise integrations that are not operational.
+
+Preserve working reader audio controls.
+
+Do not introduce Spotify or narration credentials without an approved integration plan.
+
+---
+
+# 13. Phase K — Branding and Technical Cleanup
+
+Complete the Tovu naming migration.
+
+Inspect references to:
+
+```text
+VictorOS
+VICTOR.OS
+Dr. Doom
+DoomService
+/api/doom
+onOpenDoom
+```
+
+Determine whether each reference is:
+
+- User-facing legacy branding
+- Internal compatibility code
+- Obsolete implementation
+- Required backward compatibility
+
+Remove outdated user-facing references.
+
+Consolidate redundant internal implementations.
+
+Preserve required compatibility only where necessary.
+
+Do not remove functioning endpoints without checking consumers.
+
+---
+
+# 14. Phase L — Testing and Verification
+
+Implement automated tests appropriate to the current stack.
+
+## Security tests
+
+Verify:
+
+- Anonymous users cannot modify content.
+- Draft content is not publicly accessible.
+- Conversation ownership is enforced.
+- Service-role secrets remain server-only.
+- Unauthorized indexing is rejected.
+- Malformed inputs fail safely.
+
+## Content tests
+
+Verify:
+
+- Published projects load.
+- Published articles load.
+- Lab records load.
+- Knowledge relationships resolve.
+- Missing slugs return appropriate errors.
+- Content changes propagate to search.
+
+## Intelligence tests
+
+Verify:
+
+- Tovu retrieves relevant published content.
+- References point to real records.
+- Unavailable evidence is handled honestly.
+- Conversation persistence works.
+- Rate limiting works.
+- Provider failures are handled.
+
+## UI integration tests
+
+Verify:
+
+- Navbar navigation works.
+- Command Palette search works.
+- Immersive readers open and close.
+- Deep links work.
+- Back/forward navigation works.
+- Tovu assistant opens and responds.
+- Theme switching works.
+- Reactive Digital Rain remains functional.
+- Mobile interactions remain usable.
+
+## Performance
+
+Measure:
+
+- Initial page load
+- JavaScript bundle size
+- API latency
+- Search response time
+- AI response time
+- Layout stability
+- Mobile performance
+
+Use actual measurements rather than assumptions.
+
+---
+
+# 15. Implementation Sequence
+
+Do not implement all workstreams as one uncontrolled refactor.
+
+Use the following order.
+
+### Milestone 1 — Security Foundation
+
+Complete:
+
+- Request-scoped authentication
+- Authorization
+- Secure visitor sessions
+- Conversation isolation
+- Server-only secret handling
+
+### Milestone 2 — Canonical Content Integration
+
+Complete:
+
+- Supabase-backed public modules
+- Content migration
+- Typed API clients
+- Loading/error states
+- Published-content filtering
+
+### Milestone 3 — Search and Intelligence
+
+Complete:
+
+- Canonical Tovu service
+- Search integration
+- Verified references
+- Conversation persistence
+- Rate limiting
+
+### Milestone 4 — Content Synchronization
+
+Complete:
+
+- Controlled indexing
+- Content lifecycle handling
+- Search index updates
+- Stale content removal
+
+### Milestone 5 — Application Hardening
+
+Complete:
+
+- Reader routing
+- Accessibility
+- Media integration
+- Error handling
+- Legacy cleanup
+- Automated tests
+
+Treat each milestone as independently verifiable.
+
+Do not begin risky changes to the next milestone until the current one has passed its acceptance criteria.
+
+---
+
+# 16. Future Architecture — Private Command Center
+
+Prepare interfaces for a future authenticated Command Center.
+
+It will eventually manage:
+
+- Projects
+- Articles
+- Labs
+- Knowledge concepts
+- Content relationships
+- Media assets
+- Publishing workflows
+- Search indexing
+- AI knowledge health
+- GitHub integration
+- Analytics
+- Platform operations
+
+Do not build this interface now.
+
+The objective is to ensure the current backend can support it without a major redesign.
+
+---
+
+# 17. Final Deliverables
+
+After completing each milestone, provide:
+
+1. Summary of changes
+2. Architecture decisions
+3. Files created
+4. Files modified
+5. API changes
+6. Database changes, if any
+7. Security improvements
+8. Tests executed
+9. Test results
+10. Deployment considerations
+11. Known limitations
+12. Remaining work
+
+Clearly distinguish completed implementation from proposed improvements.
+
+Do not claim functionality has been verified unless it has been tested.
+
+---
+
+# Final Engineering Principle
+
+**Tovu must become one connected system.**
+
+A project published to Supabase should appear in Work.
+
+Its technologies and concepts should appear in Knowledge.
+
+Its engineering story should be accessible through an immersive reader.
+
+Its content should become searchable.
+
+Tovu Intelligence should be able to retrieve and explain it with verified references.
+
+And the entire experience should remain secure, fast, accessible, and visually consistent.
+
+**Preserve the completed UI/UX redesign. Strengthen the platform underneath it. Implement incrementally, verify each milestone, and avoid unnecessary architectural rewrites.**

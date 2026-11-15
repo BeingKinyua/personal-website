@@ -287,6 +287,26 @@ export function chunkDocument(
   return chunks;
 }
 
+/**
+ * Generates a deterministic RFC-4122 v5-shaped UUID from any stable key
+ * so content_chunks.id always satisfies PostgreSQL UUID columns.
+ */
+export function computeDeterministicUuid(seed: string): string {
+  const h1 = computeContentHash(`${seed}#p1`);
+  const h2 = computeContentHash(`${seed}#p2`);
+  const h3 = computeContentHash(`${seed}#p3`);
+  const h4 = computeContentHash(`${seed}#p4`);
+  const hex = `${h1}${h2}${h3}${h4}`.slice(0, 32);
+  // Set version 5 nibble ('5') and RFC-4122 variant nibble ('8'|'9'|'a'|'b')
+  const part1 = hex.slice(0, 8);
+  const part2 = hex.slice(8, 12);
+  const part3 = `5${hex.slice(13, 16)}`;
+  const variantNibble = ["8", "9", "a", "b"][parseInt(hex[16], 16) % 4];
+  const part4 = `${variantNibble}${hex.slice(17, 20)}`;
+  const part5 = hex.slice(20, 32);
+  return `${part1}-${part2}-${part3}-${part4}-${part5}`;
+}
+
 function createChunkObject(
   doc: NormalizedDocument,
   sectionTitle: string,
@@ -294,8 +314,7 @@ function createChunkObject(
   chunkIndex: number
 ): ContentChunk {
   const contentHash = computeContentHash(content);
-  // Deterministic chunk ID
-  const chunkId = `chunk_${doc.sourceType}_${doc.sourceId.slice(0, 8)}_${chunkIndex}`;
+  const chunkId = computeDeterministicUuid(`${doc.sourceType}:${doc.sourceId}:${chunkIndex}`);
   const tokenCount = estimateTokenCount(content);
 
   return {

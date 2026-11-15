@@ -22,6 +22,8 @@ import { CONTENT_STATUS } from "../shared/constants";
 import { parsePagination, buildPaginationMeta } from "../shared/utils";
 import { revalidateContent, CACHE_TAGS } from "../shared/revalidate";
 import { logger } from "../shared/logger";
+import { ContentIndexer } from "../ai/embeddings/indexer";
+import { scheduleEmbeddingSync } from "../ai/embeddings/sync";
 import type {
   Project,
   ProjectFilter,
@@ -165,6 +167,12 @@ export class ProjectService {
       paths: ["/projects", `/projects/${created.slug}`],
     });
 
+    if (created.status === CONTENT_STATUS.PUBLISHED) {
+      scheduleEmbeddingSync(`project:create:${created.id}`, () =>
+        new ContentIndexer().indexProjectById(created.id).then(() => undefined)
+      );
+    }
+
     return created;
   }
 
@@ -213,6 +221,10 @@ export class ProjectService {
       paths: ["/projects", `/projects/${existing.slug}`, `/projects/${updated.slug}`],
     });
 
+    scheduleEmbeddingSync(`project:update:${updated.id}`, () =>
+      new ContentIndexer().indexProjectById(updated.id).then(() => undefined)
+    );
+
     return updated;
   }
 
@@ -248,6 +260,10 @@ export class ProjectService {
       paths: ["/projects", `/projects/${updated.slug}`],
     });
 
+    scheduleEmbeddingSync(`project:publish:${updated.id}`, () =>
+      new ContentIndexer().indexProjectById(updated.id).then(() => undefined)
+    );
+
     return updated;
   }
 
@@ -278,6 +294,10 @@ export class ProjectService {
       paths: ["/projects", `/projects/${updated.slug}`],
     });
 
+    scheduleEmbeddingSync(`project:archive:${updated.id}`, () =>
+      new ContentIndexer().removeEntity("project", updated.id)
+    );
+
     return updated;
   }
 
@@ -305,14 +325,31 @@ export class ProjectService {
       tags: [CACHE_TAGS.PROJECTS, CACHE_TAGS.PROJECT(existing.slug)],
       paths: ["/projects", `/projects/${existing.slug}`],
     });
+
+    scheduleEmbeddingSync(`project:delete:${id}`, () =>
+      new ContentIndexer().removeEntity("project", id)
+    );
   }
 
   // --- Project Sections Management ---
 
-  async getProjectSections(projectId: string): Promise<SectionRow[]> {
+  async getProjectSections(
+    projectId: string,
+    profile: ProfileRecord | null = null
+  ): Promise<SectionRow[]> {
     if (!projectId) {
       throw new ValidationError("Project ID is required.");
     }
+
+    const project = await this.repository.findById(projectId);
+    if (!project) {
+      throw new NotFoundError("Project", projectId);
+    }
+
+    if (project.status !== CONTENT_STATUS.PUBLISHED && !canAccessCommandCenter(profile)) {
+      throw new NotFoundError("Project", projectId);
+    }
+
     return this.repository.findSections(projectId);
   }
 
@@ -341,6 +378,12 @@ export class ProjectService {
       tags: [CACHE_TAGS.PROJECT(project.slug)],
       paths: [`/projects/${project.slug}`],
     });
+
+    if (project.status === CONTENT_STATUS.PUBLISHED) {
+      scheduleEmbeddingSync(`project:section_create:${projectId}`, () =>
+        new ContentIndexer().indexProjectById(projectId).then(() => undefined)
+      );
+    }
 
     return section;
   }
@@ -372,6 +415,11 @@ export class ProjectService {
         tags: [CACHE_TAGS.PROJECT(project.slug)],
         paths: [`/projects/${project.slug}`],
       });
+      if (project.status === CONTENT_STATUS.PUBLISHED) {
+        scheduleEmbeddingSync(`project:section_update:${project.id}`, () =>
+          new ContentIndexer().indexProjectById(project.id).then(() => undefined)
+        );
+      }
     }
 
     return updated;
@@ -393,6 +441,11 @@ export class ProjectService {
         tags: [CACHE_TAGS.PROJECT(project.slug)],
         paths: [`/projects/${project.slug}`],
       });
+      if (project.status === CONTENT_STATUS.PUBLISHED) {
+        scheduleEmbeddingSync(`project:section_delete:${project.id}`, () =>
+          new ContentIndexer().indexProjectById(project.id).then(() => undefined)
+        );
+      }
     }
   }
 
@@ -421,6 +474,12 @@ export class ProjectService {
       tags: [CACHE_TAGS.PROJECT(project.slug)],
       paths: [`/projects/${project.slug}`],
     });
+
+    if (project.status === CONTENT_STATUS.PUBLISHED) {
+      scheduleEmbeddingSync(`project:section_reorder:${project.id}`, () =>
+        new ContentIndexer().indexProjectById(project.id).then(() => undefined)
+      );
+    }
   }
 
   // --- Project Relations Management ---

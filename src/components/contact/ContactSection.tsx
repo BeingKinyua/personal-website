@@ -8,6 +8,8 @@ export const ContactSection: React.FC = () => {
   const [senderEmail, setSenderEmail] = useState("");
   const [isSent, setIsSent] = useState(false);
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const emailAddress = "kinyuaviktor@gmail.com";
 
   const handleCopyEmail = () => {
@@ -18,15 +20,26 @@ export const ContactSection: React.FC = () => {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    const trimmedMessage = message.trim();
+    const trimmedEmail = senderEmail.trim();
 
+    if (!trimmedMessage) {
+      setErrorMsg("Please enter a message before continuing.");
+      return;
+    }
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setErrorMsg("Please enter a valid email address or leave it blank.");
+      return;
+    }
+
+    setErrorMsg(null);
     setIsSent(true);
     const subject = `Message from ${senderName.trim() || "Tovu Visitor"}`;
     const bodyLines = [
       senderName.trim() ? `From: ${senderName.trim()}` : "",
-      senderEmail.trim() ? `Reply-to: ${senderEmail.trim()}` : "",
+      trimmedEmail ? `Reply-to: ${trimmedEmail}` : "",
       "",
-      message.trim(),
+      trimmedMessage,
     ]
       .filter(Boolean)
       .join("\n");
@@ -188,7 +201,10 @@ export const ContactSection: React.FC = () => {
                     type="text"
                     placeholder="Ada Lovelace"
                     value={senderName}
-                    onChange={(e) => setSenderName(e.target.value)}
+                    onChange={(e) => {
+                      setSenderName(e.target.value);
+                      if (errorMsg) setErrorMsg(null);
+                    }}
                     className="w-full min-h-[48px] bg-[var(--tovu-bg-inset)] border border-[var(--tovu-border-hairline)] rounded-xl px-4 py-3 text-base text-[var(--tovu-text-primary)] placeholder-[var(--tovu-text-muted)] focus:outline-none focus:border-[var(--tovu-accent)] transition-colors"
                   />
                 </div>
@@ -205,7 +221,10 @@ export const ContactSection: React.FC = () => {
                     type="email"
                     placeholder="ada@analytical.org"
                     value={senderEmail}
-                    onChange={(e) => setSenderEmail(e.target.value)}
+                    onChange={(e) => {
+                      setSenderEmail(e.target.value);
+                      if (errorMsg) setErrorMsg(null);
+                    }}
                     className="w-full min-h-[48px] bg-[var(--tovu-bg-inset)] border border-[var(--tovu-border-hairline)] rounded-xl px-4 py-3 text-base text-[var(--tovu-text-primary)] placeholder-[var(--tovu-text-muted)] focus:outline-none focus:border-[var(--tovu-accent)] transition-colors"
                   />
                 </div>
@@ -223,11 +242,20 @@ export const ContactSection: React.FC = () => {
                   rows={5}
                   placeholder="Describe the project, architectural challenge, or idea you want to discuss..."
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  onChange={(e) => {
+                    setMessage(e.target.value);
+                    if (errorMsg) setErrorMsg(null);
+                  }}
                   required
                   className="w-full bg-[var(--tovu-bg-inset)] border border-[var(--tovu-border-hairline)] rounded-xl px-4 py-3.5 text-base text-[var(--tovu-text-primary)] placeholder-[var(--tovu-text-muted)] focus:outline-none focus:border-[var(--tovu-accent)] resize-none leading-relaxed transition-colors"
                 />
               </div>
+
+              {errorMsg && (
+                <p role="alert" className="text-sm text-red-400 font-medium">
+                  {errorMsg}
+                </p>
+              )}
 
               <div className="pt-2 flex flex-wrap items-center justify-between gap-4">
                 <span className="text-[13px] text-[var(--tovu-text-muted)]">

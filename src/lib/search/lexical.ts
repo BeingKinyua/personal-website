@@ -1,31 +1,39 @@
 /**
- * VictorOS Intelligence Layer — Lexical Search
+ * Tovu Intelligence Layer — Lexical Search
  * Full-text keyword and term search with hierarchical field weighting
  * (Title > Slug > Technologies > Excerpt > Body).
  */
 
-import type { SearchOptions, SearchResult, SearchSourceType } from "./types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../supabase/types";
+import type { SearchOptions, SearchResult } from "./types";
 import { ProjectRepository } from "../projects/repository";
 import { ArticleRepository } from "../articles/repository";
 import { LabRepository } from "../labs/repository";
 import { KnowledgeRepository } from "../knowledge/repository";
+import { isSupabaseConfigured } from "../shared/env";
 
 export class LexicalSearchService {
   private projectRepo: ProjectRepository;
   private articleRepo: ArticleRepository;
   private labRepo: LabRepository;
   private knowledgeRepo: KnowledgeRepository;
+  private hasInjectedClient: boolean;
 
-  constructor() {
-    this.projectRepo = new ProjectRepository();
-    this.articleRepo = new ArticleRepository();
-    this.labRepo = new LabRepository();
-    this.knowledgeRepo = new KnowledgeRepository();
+  constructor(client?: SupabaseClient<Database>) {
+    this.hasInjectedClient = Boolean(client);
+    this.projectRepo = new ProjectRepository(client);
+    this.articleRepo = new ArticleRepository(client);
+    this.labRepo = new LabRepository(client);
+    this.knowledgeRepo = new KnowledgeRepository(client);
   }
 
   async search(options: SearchOptions): Promise<SearchResult[]> {
     const rawQuery = options.query.trim();
     if (!rawQuery) return [];
+    if (!this.hasInjectedClient && !isSupabaseConfigured(false)) {
+      return [];
+    }
 
     const limit = options.limit ?? 10;
     const allowedTypes = options.sourceTypes;
@@ -49,6 +57,7 @@ export class LexicalSearchService {
         });
 
         for (const p of projects) {
+          if (!includeDrafts && p.status !== "published") continue;
           const score = this.calculateLexicalScore(
             terms,
             rawQuery,
@@ -78,7 +87,7 @@ export class LexicalSearchService {
           }
         }
       } catch {
-        // Safe fall-through
+        // Safe fall-through when Supabase is unconfigured
       }
     }
 
@@ -91,6 +100,7 @@ export class LexicalSearchService {
         });
 
         for (const a of articles) {
+          if (!includeDrafts && a.status !== "published") continue;
           const score = this.calculateLexicalScore(
             terms,
             rawQuery,
@@ -98,7 +108,7 @@ export class LexicalSearchService {
             a.slug,
             a.excerpt || "",
             a.content.slice(0, 800),
-            []
+            (a.tags || []).map((t) => t.name)
           );
 
           if (score > 0) {
@@ -126,7 +136,6 @@ export class LexicalSearchService {
     if (!allowedTypes || allowedTypes.includes("lab")) {
       try {
         const { data: labs } = await this.labRepo.findMany({
-          status: includeDrafts ? undefined : undefined,
           limit: 30,
         });
 
@@ -222,7 +231,6 @@ export class LexicalSearchService {
     const lDesc = description.toLowerCase();
     const lQuery = rawQuery.toLowerCase();
 
-    // Exact full query match bonuses
     if (lTitle === lQuery) return 1.0;
     if (lSlug === lQuery) return 0.95;
     if (lTitle.includes(lQuery)) return 0.9;
@@ -262,11 +270,9 @@ export class LexicalSearchService {
 
     if (matchedTerms === 0) return 0;
 
-    // Coverage factor: percentage of search terms satisfied
     const coverage = matchedTerms / terms.length;
     const rawScore = (points / (terms.length * 4.0)) * coverage;
 
-    // Cap and normalize between 0.05 and 0.88 (reserved 0.9+ for exact title matches)
     return Math.min(0.88, Math.max(0.05, Number(rawScore.toFixed(3))));
   }
 }

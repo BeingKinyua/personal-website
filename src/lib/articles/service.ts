@@ -12,6 +12,8 @@ import { CONTENT_STATUS } from "../shared/constants";
 import { parsePagination, buildPaginationMeta } from "../shared/utils";
 import { revalidateContent, CACHE_TAGS } from "../shared/revalidate";
 import { logger } from "../shared/logger";
+import { ContentIndexer } from "../ai/embeddings/indexer";
+import { scheduleEmbeddingSync } from "../ai/embeddings/sync";
 import type { Article, ArticleFilter, CreateArticleInput, UpdateArticleInput } from "./types";
 
 export class ArticleService {
@@ -120,6 +122,12 @@ export class ArticleService {
       paths: ["/articles", `/articles/${created.slug}`],
     });
 
+    if (created.status === CONTENT_STATUS.PUBLISHED) {
+      scheduleEmbeddingSync(`article:create:${created.id}`, () =>
+        new ContentIndexer().indexArticleById(created.id).then(() => undefined)
+      );
+    }
+
     return created;
   }
 
@@ -189,6 +197,10 @@ export class ArticleService {
       paths: ["/articles", `/articles/${updated.slug}`],
     });
 
+    scheduleEmbeddingSync(`article:publish:${updated.id}`, () =>
+      new ContentIndexer().indexArticleById(updated.id).then(() => undefined)
+    );
+
     return updated;
   }
 
@@ -218,6 +230,10 @@ export class ArticleService {
       tags: [CACHE_TAGS.ARTICLES, CACHE_TAGS.ARTICLE(updated.slug)],
       paths: ["/articles", `/articles/${updated.slug}`],
     });
+
+    scheduleEmbeddingSync(`article:archive:${updated.id}`, () =>
+      new ContentIndexer().removeEntity("article", updated.id)
+    );
 
     return updated;
   }
@@ -277,6 +293,10 @@ export class ArticleService {
       paths: ["/articles", `/articles/${existing.slug}`, `/articles/${updated.slug}`],
     });
 
+    scheduleEmbeddingSync(`article:update:${updated.id}`, () =>
+      new ContentIndexer().indexArticleById(updated.id).then(() => undefined)
+    );
+
     return updated;
   }
 
@@ -304,6 +324,10 @@ export class ArticleService {
       tags: [CACHE_TAGS.ARTICLES, CACHE_TAGS.ARTICLE(existing.slug)],
       paths: ["/articles", `/articles/${existing.slug}`],
     });
+
+    scheduleEmbeddingSync(`article:delete:${id}`, () =>
+      new ContentIndexer().removeEntity("article", id)
+    );
   }
 
   // --- Article Relations Management ---

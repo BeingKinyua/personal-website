@@ -154,8 +154,8 @@ export const getProjectSectionsAction = createSafeAction(
     schema: z.object({ projectId: z.string().uuid() }),
     actionName: "projects:getSections",
   },
-  async ({ projectId }) => {
-    return service.getProjectSections(projectId);
+  async ({ projectId }, { profile }) => {
+    return service.getProjectSections(projectId, profile);
   }
 );
 

@@ -30,7 +30,7 @@ export const createLabSchema = z.object({
     .max(100)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens"),
   title: z.string().min(2).max(150),
-  description: z.string().min(5).max(500),
+  description: z.string().min(5).max(4000),
   category: z.string().min(1),
   status: labStatusEnum.default("building"),
   stars: z.number().int().nonnegative().default(0),

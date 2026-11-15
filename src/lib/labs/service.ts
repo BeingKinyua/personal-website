@@ -5,12 +5,14 @@
 
 import { LabRepository } from "./repository";
 import { createLabSchema, updateLabSchema, labFilterSchema, attachLabMediaSchema } from "./schemas";
-import { assertCanManageLabs, assertCanDelete } from "../auth/authorization";
+import { assertCanManageLabs, assertCanDelete, canAccessCommandCenter } from "../auth/authorization";
 import type { ProfileRecord } from "../auth/authorization";
 import { ValidationError, NotFoundError, ConflictError } from "../shared/errors";
 import { parsePagination, buildPaginationMeta } from "../shared/utils";
 import { revalidateContent, CACHE_TAGS } from "../shared/revalidate";
 import { logger } from "../shared/logger";
+import { ContentIndexer } from "../ai/embeddings/indexer";
+import { scheduleEmbeddingSync } from "../ai/embeddings/sync";
 import type { Lab, LabFilter, CreateLabInput, UpdateLabInput } from "./types";
 
 export class LabService {
@@ -20,7 +22,7 @@ export class LabService {
     this.repository = repository || new LabRepository();
   }
 
-  async listLabs(rawFilter: unknown = {}) {
+  async listLabs(rawFilter: unknown = {}, profile: ProfileRecord | null = null) {
     const parseResult = labFilterSchema.safeParse(rawFilter);
     if (!parseResult.success) {
       throw new ValidationError("Invalid lab filter parameters", {
@@ -29,6 +31,20 @@ export class LabService {
     }
 
     const filter: LabFilter = { ...parseResult.data };
+    const isPrivileged = canAccessCommandCenter(profile);
+
+    if (!isPrivileged) {
+      if (filter.status === "archived") {
+        // Non-privileged callers cannot query archived labs
+        const { page, limit } = parsePagination({ page: filter.page, limit: filter.limit });
+        return {
+          labs: [],
+          pagination: buildPaginationMeta(0, page, limit),
+        };
+      }
+      filter.excludeArchived = true;
+    }
+
     const { page, limit } = parsePagination({ page: filter.page, limit: filter.limit });
     const { data, total } = await this.repository.findMany(filter);
 
@@ -39,10 +55,10 @@ export class LabService {
   }
 
   async getPublishedLabs(filter: LabFilter = {}) {
-    return this.listLabs(filter);
+    return this.listLabs(filter, null);
   }
 
-  async getLabById(id: string): Promise<Lab> {
+  async getLabById(id: string, profile: ProfileRecord | null = null): Promise<Lab> {
     if (!id) {
       throw new ValidationError("Lab ID is required.");
     }
@@ -52,16 +68,24 @@ export class LabService {
       throw new NotFoundError("Lab experiment", id);
     }
 
+    if (lab.status === "archived" && !canAccessCommandCenter(profile)) {
+      throw new NotFoundError("Lab experiment", id);
+    }
+
     return lab;
   }
 
-  async getLabBySlug(slug: string): Promise<Lab> {
+  async getLabBySlug(slug: string, profile: ProfileRecord | null = null): Promise<Lab> {
     if (!slug) {
       throw new ValidationError("Lab slug is required.");
     }
 
     const lab = await this.repository.findBySlug(slug);
     if (!lab) {
+      throw new NotFoundError("Lab experiment", slug);
+    }
+
+    if (lab.status === "archived" && !canAccessCommandCenter(profile)) {
       throw new NotFoundError("Lab experiment", slug);
     }
 
@@ -98,6 +122,12 @@ export class LabService {
       tags: [CACHE_TAGS.LABS, CACHE_TAGS.LAB(created.slug)],
       paths: ["/labs", `/labs/${created.slug}`],
     });
+
+    if (created.status !== "archived") {
+      scheduleEmbeddingSync(`lab:create:${created.id}`, () =>
+        new ContentIndexer().indexLabById(created.id).then(() => undefined)
+      );
+    }
 
     return created;
   }
@@ -140,6 +170,10 @@ export class LabService {
       paths: ["/labs", `/labs/${existing.slug}`, `/labs/${updated.slug}`],
     });
 
+    scheduleEmbeddingSync(`lab:update:${updated.id}`, () =>
+      new ContentIndexer().indexLabById(updated.id).then(() => undefined)
+    );
+
     return updated;
   }
 
@@ -167,6 +201,10 @@ export class LabService {
       paths: ["/labs", `/labs/${updated.slug}`],
     });
 
+    scheduleEmbeddingSync(`lab:archive:${updated.id}`, () =>
+      new ContentIndexer().removeEntity("lab", updated.id)
+    );
+
     return updated;
   }
 
@@ -191,6 +229,10 @@ export class LabService {
       tags: [CACHE_TAGS.LABS, CACHE_TAGS.LAB(existing.slug)],
       paths: ["/labs", `/labs/${existing.slug}`],
     });
+
+    scheduleEmbeddingSync(`lab:delete:${id}`, () =>
+      new ContentIndexer().removeEntity("lab", id)
+    );
   }
 
   async attachMedia(
