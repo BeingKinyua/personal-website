@@ -27,7 +27,8 @@ function assert(condition: boolean, message: string): void {
 const ADMIN_PROFILE: ProfileRecord = {
   id: "11111111-1111-4111-8111-111111111111",
   username: "victor",
-  full_name: "Victor Kinyua",
+  user_id: "11111111-1111-4111-8111-111111111111",
+  display_name: "Victor Kinyua",
   avatar_url: null,
   bio: null,
   role: "admin",
