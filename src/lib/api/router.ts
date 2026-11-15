@@ -792,7 +792,7 @@ export function createBackendRouter(): Router {
         sessionId,
         user?.id
       );
-      const messages = await conversationService.listMessages(req.params.id, 20);
+      const messages = await conversationService.listMessages(req.params.id, 20, sessionId, user?.id);
 
       return {
         conversation: toPublicConversation(conv),
