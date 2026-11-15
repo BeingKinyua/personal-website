@@ -19,7 +19,7 @@ import {
 import { ProjectService } from "../src/lib/projects/service";
 import { LabService } from "../src/lib/labs/service";
 import { MediaService } from "../src/lib/media/service";
-import { ConversationService, toPublicConversation } from "../src/lib/ai/conversations/service";
+import { toPublicConversation } from "../src/lib/ai/conversations/service";
 import { TovuService } from "../src/lib/ai/tovu/service";
 import type { ProfileRecord } from "../src/lib/auth/authorization";
 
