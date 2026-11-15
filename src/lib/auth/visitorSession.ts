@@ -7,49 +7,20 @@
 import crypto from "node:crypto";
 import type { Request, Response } from "express";
 import { getServerEnv } from "../shared/env";
-import { logger } from "../shared/logger";
 
 export const VISITOR_SESSION_COOKIE = "tovu_sid";
 const VISITOR_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
-// Ephemeral per-process fallback secret if SESSION_SECRET is unset (never leaves server)
-let ephemeralDevSecret: string | null = null;
-let warnedMissingSecret = false;
-
 function getSigningSecret(): string {
-  const { sessionSecret, supabaseServiceRoleKey, nodeEnv } = getServerEnv();
-  if (sessionSecret && sessionSecret.length >= 16) {
-    return sessionSecret;
+  const { sessionSecret, nodeEnv } = getServerEnv();
+  if (sessionSecret && sessionSecret.length >= 32) return sessionSecret;
+  if (nodeEnv === "production") {
+    throw new Error("VISITOR_SESSION_SECRET must be configured with at least 32 characters in production");
   }
-
-  // Derive a deterministic HMAC key from server-only service role key if configured,
-  // avoiding a distinct secret requirement in minimal deployments while keeping it server-only.
-  if (
-    supabaseServiceRoleKey &&
-    !supabaseServiceRoleKey.includes("your-supabase") &&
-    !supabaseServiceRoleKey.includes("placeholder")
-  ) {
-    return crypto
-      .createHash("sha256")
-      .update(`tovu-visitor-session:${supabaseServiceRoleKey}`)
-      .digest("hex");
-  }
-
-  if (!ephemeralDevSecret) {
-    ephemeralDevSecret = crypto.randomBytes(32).toString("hex");
-  }
-
-  if (!warnedMissingSecret) {
-    warnedMissingSecret = true;
-    const msg =
-      nodeEnv === "production"
-        ? "SESSION_SECRET is missing in production; using ephemeral per-process visitor signing key."
-        : "SESSION_SECRET is not set; using ephemeral per-process dev key for visitor cookies.";
-    logger.warn(msg);
-  }
-
-  return ephemeralDevSecret;
+  return developmentSecret;
 }
+
+const developmentSecret = crypto.randomBytes(32).toString("hex");
 
 export function parseCookieHeader(cookieHeader?: string): Record<string, string> {
   if (!cookieHeader) return {};
