@@ -80,7 +80,7 @@ export class TovuService {
       );
 
       try {
-        const messages = await this.conversationService.listMessages(activeConversationId, 6);
+        const messages = await this.conversationService.listMessages(activeConversationId, 6, sessionId, input.userId);
         for (const m of messages) {
           if (m.role === "user" || m.role === "assistant") {
             historyTurns.push({ role: m.role, content: m.content });
@@ -184,7 +184,7 @@ export class TovuService {
     let persistenceStatus: "persisted" | "ephemeral" | "failed" = "ephemeral";
     if (activeConversationId) {
       try {
-        await this.conversationService.addMessage(activeConversationId, "user", query);
+        await this.conversationService.addMessage(activeConversationId, "user", query, undefined, sessionId, input.userId);
         await this.conversationService.addMessage(
           activeConversationId,
           "assistant",
@@ -194,7 +194,9 @@ export class TovuService {
             actions: response.actions,
             intent: response.intent,
             fallbackUsed,
-          }
+          },
+        sessionId,
+        input.userId
         );
         persistenceStatus = "persisted";
       } catch (err) {
