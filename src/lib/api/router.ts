@@ -4,6 +4,8 @@
  */
 
 import { Router } from "express";
+import { bindRequestIdentity, identity } from "../auth/request";
+import { AuthorizationError } from "../shared/errors";
 import { executeApiHandler, createApiResponse } from "../shared/api";
 import { ProjectService } from "../projects/service";
 import { ArticleService } from "../articles/service";
@@ -22,6 +24,7 @@ import { ValidationError, TooManyRequestsError } from "../shared/errors";
 
 export function createBackendRouter(): Router {
   const router = Router();
+  router.use(bindRequestIdentity);
   const projectService = new ProjectService();
   const articleService = new ArticleService();
   const labService = new LabService();
@@ -60,8 +63,8 @@ export function createBackendRouter(): Router {
   // Authentication & Session inspection
   router.get("/auth/session", (req, res) => {
     executeApiHandler(res, async () => {
-      const user = await getCurrentUser();
-      const profile = await getCurrentProfile();
+      const user = await Promise.resolve(identity(req).user);
+      const profile = await getCurrentProfile(identity(req).client || undefined);
 
       return {
         authenticated: Boolean(user),
@@ -74,49 +77,49 @@ export function createBackendRouter(): Router {
   // Projects Endpoints
   router.get("/projects", (req, res) => {
     executeApiHandler(res, async () => {
-      const profile = await getCurrentProfile();
+      const profile = await getCurrentProfile(identity(req).client || undefined);
       return await projectService.listProjects(req.query, profile);
     });
   });
 
   router.get("/projects/:slug", (req, res) => {
     executeApiHandler(res, async () => {
-      const profile = await getCurrentProfile();
+      const profile = await getCurrentProfile(identity(req).client || undefined);
       return await projectService.getProjectBySlug(req.params.slug, profile);
     });
   });
 
   router.post("/projects", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await projectService.createProject(req.body, profile);
     }, HTTP_STATUS.CREATED);
   });
 
   router.put("/projects/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await projectService.updateProject(req.params.id, req.body, profile);
     });
   });
 
   router.post("/projects/:id/publish", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await projectService.publishProject(req.params.id, profile);
     });
   });
 
   router.post("/projects/:id/archive", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await projectService.archiveProject(req.params.id, profile);
     });
   });
 
   router.delete("/projects/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await projectService.deleteProject(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
@@ -131,21 +134,21 @@ export function createBackendRouter(): Router {
 
   router.post("/projects/:id/sections", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await projectService.createProjectSection(req.params.id, req.body, profile);
     }, HTTP_STATUS.CREATED);
   });
 
   router.put("/projects/sections/:sectionId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await projectService.updateProjectSection(req.params.sectionId, req.body, profile);
     });
   });
 
   router.delete("/projects/sections/:sectionId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await projectService.deleteProjectSection(req.params.sectionId, profile);
       return { sectionId: req.params.sectionId, deleted: true };
     });
@@ -153,7 +156,7 @@ export function createBackendRouter(): Router {
 
   router.post("/projects/:id/sections/reorder", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await projectService.reorderProjectSections(req.params.id, req.body, profile);
       return { success: true };
     });
@@ -162,7 +165,7 @@ export function createBackendRouter(): Router {
   // Project Relations Endpoints
   router.post("/projects/:id/tags", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await projectService.attachTag(req.params.id, req.body.tag_id, profile);
       return { success: true };
     });
@@ -170,7 +173,7 @@ export function createBackendRouter(): Router {
 
   router.delete("/projects/:id/tags/:tagId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await projectService.detachTag(req.params.id, req.params.tagId, profile);
       return { success: true };
     });
@@ -178,7 +181,7 @@ export function createBackendRouter(): Router {
 
   router.post("/projects/:id/technologies", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await projectService.attachTechnology(req.params.id, req.body.technology_id, profile);
       return { success: true };
     });
@@ -186,7 +189,7 @@ export function createBackendRouter(): Router {
 
   router.delete("/projects/:id/technologies/:techId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await projectService.detachTechnology(req.params.id, req.params.techId, profile);
       return { success: true };
     });
@@ -194,7 +197,7 @@ export function createBackendRouter(): Router {
 
   router.post("/projects/:id/media", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await projectService.attachMedia(req.params.id, req.body, profile);
       return { success: true };
     });
@@ -202,7 +205,7 @@ export function createBackendRouter(): Router {
 
   router.delete("/projects/:id/media/:mediaAssetId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await projectService.detachMedia(req.params.id, req.params.mediaAssetId, profile);
       return { success: true };
     });
@@ -211,49 +214,49 @@ export function createBackendRouter(): Router {
   // Articles Endpoints
   router.get("/articles", (req, res) => {
     executeApiHandler(res, async () => {
-      const profile = await getCurrentProfile();
+      const profile = await getCurrentProfile(identity(req).client || undefined);
       return await articleService.listArticles(req.query, profile);
     });
   });
 
   router.get("/articles/:slug", (req, res) => {
     executeApiHandler(res, async () => {
-      const profile = await getCurrentProfile();
+      const profile = await getCurrentProfile(identity(req).client || undefined);
       return await articleService.getArticleBySlug(req.params.slug, profile);
     });
   });
 
   router.post("/articles", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await articleService.createArticle(req.body, profile);
     }, HTTP_STATUS.CREATED);
   });
 
   router.put("/articles/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await articleService.updateArticle(req.params.id, req.body, profile);
     });
   });
 
   router.post("/articles/:id/publish", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await articleService.publishArticle(req.params.id, profile);
     });
   });
 
   router.post("/articles/:id/archive", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await articleService.archiveArticle(req.params.id, profile);
     });
   });
 
   router.delete("/articles/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await articleService.deleteArticle(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
@@ -262,7 +265,7 @@ export function createBackendRouter(): Router {
   // Article Relations Endpoints
   router.post("/articles/:id/tags", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await articleService.attachTag(req.params.id, req.body.tag_id, profile);
       return { success: true };
     });
@@ -270,7 +273,7 @@ export function createBackendRouter(): Router {
 
   router.delete("/articles/:id/tags/:tagId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await articleService.detachTag(req.params.id, req.params.tagId, profile);
       return { success: true };
     });
@@ -278,7 +281,7 @@ export function createBackendRouter(): Router {
 
   router.post("/articles/:id/technologies", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await articleService.attachTechnology(req.params.id, req.body.technology_id, profile);
       return { success: true };
     });
@@ -286,7 +289,7 @@ export function createBackendRouter(): Router {
 
   router.delete("/articles/:id/technologies/:techId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await articleService.detachTechnology(req.params.id, req.params.techId, profile);
       return { success: true };
     });
@@ -294,7 +297,7 @@ export function createBackendRouter(): Router {
 
   router.post("/articles/:id/media", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await articleService.attachMedia(
         req.params.id,
         req.body.media_asset_id,
@@ -308,7 +311,7 @@ export function createBackendRouter(): Router {
 
   router.delete("/articles/:id/media/:mediaAssetId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await articleService.detachMedia(req.params.id, req.params.mediaAssetId, profile);
       return { success: true };
     });
@@ -329,28 +332,28 @@ export function createBackendRouter(): Router {
 
   router.post("/labs", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await labService.createLab(req.body, profile);
     }, HTTP_STATUS.CREATED);
   });
 
   router.put("/labs/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await labService.updateLab(req.params.id, req.body, profile);
     });
   });
 
   router.post("/labs/:id/archive", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await labService.archiveLab(req.params.id, profile);
     });
   });
 
   router.delete("/labs/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await labService.deleteLab(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
@@ -358,7 +361,7 @@ export function createBackendRouter(): Router {
 
   router.post("/labs/:id/media", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await labService.attachMedia(req.params.id, req.body, profile);
       return { success: true };
     });
@@ -366,7 +369,7 @@ export function createBackendRouter(): Router {
 
   router.delete("/labs/:id/media/:mediaAssetId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await labService.detachMedia(req.params.id, req.params.mediaAssetId, profile);
       return { success: true };
     });
@@ -387,21 +390,21 @@ export function createBackendRouter(): Router {
 
   router.post("/knowledge", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await knowledgeService.createConcept(req.body, profile);
     }, HTTP_STATUS.CREATED);
   });
 
   router.put("/knowledge/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await knowledgeService.updateConcept(req.params.id, req.body, profile);
     });
   });
 
   router.delete("/knowledge/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await knowledgeService.deleteConcept(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
@@ -418,7 +421,7 @@ export function createBackendRouter(): Router {
 
   router.post("/knowledge/content", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await knowledgeService.attachContentConcept(req.body, profile);
       return { success: true };
     });
@@ -426,7 +429,7 @@ export function createBackendRouter(): Router {
 
   router.delete("/knowledge/content/:type/:id/:conceptId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await knowledgeService.detachContentConcept(
         req.params.type as "project" | "article" | "lab",
         req.params.id,
@@ -445,7 +448,7 @@ export function createBackendRouter(): Router {
 
   router.post("/knowledge/relationships", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await knowledgeService.linkConcepts(req.body, profile);
       return { success: true };
     });
@@ -453,7 +456,7 @@ export function createBackendRouter(): Router {
 
   router.delete("/knowledge/relationships/:sourceId/:targetId", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await knowledgeService.unlinkConcepts(req.params.sourceId, req.params.targetId, profile);
       return { success: true };
     });
@@ -474,14 +477,14 @@ export function createBackendRouter(): Router {
 
   router.post("/media", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       return await mediaService.registerMedia(req.body, profile);
     }, HTTP_STATUS.CREATED);
   });
 
   router.delete("/media/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       await mediaService.deleteMedia(req.params.id, profile);
       return { id: req.params.id, deleted: true };
     });
@@ -510,7 +513,7 @@ export function createBackendRouter(): Router {
         ? (typeParam.split(",").map((s) => s.trim()) as any)
         : undefined;
 
-      const profile = await getCurrentProfile();
+      const profile = await getCurrentProfile(identity(req).client || undefined);
       const includeDrafts = Boolean(profile && ["admin", "creator"].includes(profile.role));
 
       return await hybridSearchService.search({
@@ -525,22 +528,14 @@ export function createBackendRouter(): Router {
   // Tovu Intelligence Assistant Endpoint (Canonical)
   const handleTovuQuery = (req: any, res: any) => {
     executeApiHandler(res, async () => {
-      // Rate limiting: 30 requests per minute per IP / session
-      const clientIp = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "anonymous";
-      const sessionId = typeof req.body.sessionId === "string" ? req.body.sessionId : clientIp;
-      const rateCheck = checkRateLimit(sessionId, { windowMs: 60_000, maxRequests: 30 });
-
-      if (!rateCheck.allowed) {
-        throw new TooManyRequestsError("Tovu query limit reached. Please wait before asking further questions.", {
-          resetInMs: rateCheck.resetInMs,
-        });
-      }
-
-      const user = await getCurrentUser();
+      const caller = identity(req);
+      const rateCheck = checkRateLimit(caller.visitorSession, { windowMs: 60_000, maxRequests: 30 });
+      if (!rateCheck.allowed) throw new TooManyRequestsError("Tovu query limit reached.", { resetInMs: rateCheck.resetInMs });
+      const { sessionId: _ignoredSession, userId: _ignoredUser, ...safeBody } = req.body || {};
       return await tovuService.ask({
-        ...req.body,
-        userId: user?.id,
-        sessionId,
+        ...safeBody,
+        userId: caller.user?.id,
+        sessionId: caller.visitorSession,
       });
     });
   };
@@ -555,19 +550,9 @@ export function createBackendRouter(): Router {
   // Conversation retrieval with session boundary enforcement
   router.get("/conversations/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const sessionId =
-        typeof req.query.sessionId === "string"
-          ? req.query.sessionId
-          : (req.headers["x-session-id"] as string) || "anonymous";
-      const user = await getCurrentUser();
-
-      const conv = await conversationService.getConversation(
-        req.params.id,
-        sessionId,
-        user?.id
-      );
-      const messages = await conversationService.listMessages(req.params.id, 20);
-
+      const caller = identity(req);
+      const conv = await conversationService.getConversation(req.params.id, caller.visitorSession, caller.user?.id);
+      const messages = await conversationService.listMessages(req.params.id, 20, caller.visitorSession, caller.user?.id);
       return {
         conversation: conv,
         messages,
@@ -578,9 +563,9 @@ export function createBackendRouter(): Router {
   // Content Indexing Endpoint (Admin only)
   router.post("/intelligence/index", (req, res) => {
     executeApiHandler(res, async () => {
-      const { profile } = await requireAuthContext();
+      const { profile } = await requireAuthContext(identity(req).client || undefined);
       if (profile.role !== "admin") {
-        throw new ValidationError("Only administrators can trigger full system vector indexing");
+        throw new AuthorizationError("Only administrators can trigger full system vector indexing");
       }
       return await contentIndexer.indexAll();
     });
