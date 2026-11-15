@@ -4,7 +4,7 @@
  */
 
 import { Router } from "express";
-import { bindRequestIdentity, identity } from "../auth/request";
+import { bindRequestIdentity, identity, requireVisitorSession } from "../auth/request";
 import { AuthorizationError } from "../shared/errors";
 import { executeApiHandler, createApiResponse } from "../shared/api";
 import { ProjectService } from "../projects/service";
@@ -528,7 +528,7 @@ export function createBackendRouter(): Router {
   // Tovu Intelligence Assistant Endpoint (Canonical)
   const handleTovuQuery = (req: any, res: any) => {
     executeApiHandler(res, async () => {
-      const caller = identity(req);
+      const caller = requireVisitorSession(req);
       const rateCheck = checkRateLimit(caller.visitorSession, { windowMs: 60_000, maxRequests: 30 });
       if (!rateCheck.allowed) throw new TooManyRequestsError("Tovu query limit reached.", { resetInMs: rateCheck.resetInMs });
       const { sessionId: _ignoredSession, userId: _ignoredUser, ...safeBody } = req.body || {};
@@ -550,7 +550,7 @@ export function createBackendRouter(): Router {
   // Conversation retrieval with session boundary enforcement
   router.get("/conversations/:id", (req, res) => {
     executeApiHandler(res, async () => {
-      const caller = identity(req);
+      const caller = requireVisitorSession(req);
       const conv = await conversationService.getConversation(req.params.id, caller.visitorSession, caller.user?.id);
       const messages = await conversationService.listMessages(req.params.id, 20, caller.visitorSession, caller.user?.id);
       return {
@@ -571,5 +571,15 @@ export function createBackendRouter(): Router {
     });
   });
 
+  router.use((error: unknown, _req: any, res: any, _next: any) => {
+    const safe = error instanceof Error && "statusCode" in error
+      ? error as any : null;
+    res.status(safe?.statusCode || 500).json({
+      success: false,
+      error: { code: safe?.code || "INTERNAL_SERVER_ERROR",
+        message: safe?.message || "An unexpected system error occurred.",
+        statusCode: safe?.statusCode || 500 },
+    });
+  });
   return router;
 }
