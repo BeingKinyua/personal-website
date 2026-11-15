@@ -822,5 +822,15 @@ export function createBackendRouter(): Router {
     });
   });
 
+  router.use((error: unknown, _req: any, res: any, _next: any) => {
+    const safe = error instanceof Error && "statusCode" in error
+      ? error as any : null;
+    res.status(safe?.statusCode || 500).json({
+      success: false,
+      error: { code: safe?.code || "INTERNAL_SERVER_ERROR",
+        message: safe?.message || "An unexpected system error occurred.",
+        statusCode: safe?.statusCode || 500 },
+    });
+  });
   return router;
 }
