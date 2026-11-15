@@ -44,7 +44,7 @@ export async function getCurrentProfile(client?: SupabaseClient<Database>): Prom
   const { data: profile, error } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user.id)
+    .eq("user_id", user.id)
     .single();
 
   if (error || !profile) {
