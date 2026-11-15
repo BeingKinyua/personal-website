@@ -1,11 +1,16 @@
 /**
  * Tovu Intelligence Layer — Main Service
  * Orchestrates intent classification, grounded retrieval, context assembly,
- * LLM generation, response validation, and conversation tracking.
+ * LLM generation, response grounding validation, and conversation tracking.
  */
 
 import { z } from "zod";
-import { type TovuResponse, TovuResponseSchema, sanitizeTovuResponse } from "./response";
+import {
+  type TovuResponse,
+  TovuResponseSchema,
+  groundTovuResponse,
+  sanitizeTovuResponse,
+} from "./response";
 import { classifyIntent, type IntentClassification } from "./intent";
 import { TovuRetrievalService, type EvidenceItem } from "./retrieval";
 import { assembleTovuPrompt, type ConversationTurn } from "./context";
@@ -51,13 +56,51 @@ export class TovuService {
     const startTime = Date.now();
     const input = TovuServiceInputSchema.parse(rawInput);
     const query = input.message.trim();
-    const sessionId = input.sessionId || "anonymous_session";
+    const sessionId = input.sessionId?.trim();
+
+    if (!sessionId) {
+      throw new ValidationError("A verified visitor session is required.");
+    }
 
     logger.info("Tovu inquiry received", {
       query: query.slice(0, 100),
-      sessionId,
       conversationId: input.conversationId,
+      hasUser: Boolean(input.userId),
     });
+
+    // Enforce conversation ownership BEFORE retrieving history, generating LLM output, or appending messages
+    let activeConversationId = input.conversationId?.trim() || undefined;
+    const historyTurns: ConversationTurn[] = [];
+
+    if (activeConversationId) {
+      await this.conversationService.getConversation(
+        activeConversationId,
+        sessionId,
+        input.userId
+      );
+
+      try {
+        const messages = await this.conversationService.listMessages(activeConversationId, 6);
+        for (const m of messages) {
+          if (m.role === "user" || m.role === "assistant") {
+            historyTurns.push({ role: m.role, content: m.content });
+          }
+        }
+      } catch (err) {
+        logger.warn("Could not fetch conversation history", { error: String(err) });
+      }
+    } else {
+      try {
+        const created = await this.conversationService.createConversation({
+          sessionId,
+          userId: input.userId,
+          title: query.slice(0, 80),
+        });
+        activeConversationId = created.id;
+      } catch (err) {
+        logger.warn("Could not initialize conversation record", { error: String(err) });
+      }
+    }
 
     // 1. Intent Classification
     const classification: IntentClassification = classifyIntent(query);
@@ -72,25 +115,7 @@ export class TovuService {
       classification
     );
 
-    // 3. Conversation History (if existing conversation)
-    const historyTurns: ConversationTurn[] = [];
-    if (input.conversationId) {
-      try {
-        const messages = await this.conversationService.listMessages(
-          input.conversationId,
-          4
-        );
-        for (const m of messages) {
-          if (m.role === "user" || m.role === "assistant") {
-            historyTurns.push({ role: m.role, content: m.content });
-          }
-        }
-      } catch (err) {
-        logger.warn("Could not fetch conversation history", { error: String(err) });
-      }
-    }
-
-    // 4. Context & Prompt Assembly
+    // 3. Context & Prompt Assembly
     const userPrompt = assembleTovuPrompt(
       query,
       classification,
@@ -108,20 +133,25 @@ export class TovuService {
       systemInstruction += `\n\n${TOVU_KNOWLEDGE_GUIDELINES}`;
     }
 
-    // 5. LLM Structured Generation
+    // 4. LLM Structured Generation (no unsupported Gemini 4 temperature parameters)
+    let fallbackUsed = this.aiProvider.name === "tovu-grounded-fallback";
     let response: TovuResponse;
+
     try {
       response = await this.aiProvider.generateStructured(
         userPrompt,
         TovuResponseSchema,
         {
           systemInstruction,
-          temperature: 0.25,
           maxOutputTokens: 2048,
         }
       );
+      if (response.fallbackUsed) {
+        fallbackUsed = true;
+      }
     } catch (err) {
-      logger.warn("Primary LLM structured generation failed, using sanitized fallback", {
+      fallbackUsed = true;
+      logger.warn("Primary LLM structured generation failed, using grounded fallback", {
         error: String(err),
       });
       response = sanitizeTovuResponse({
@@ -131,10 +161,10 @@ export class TovuService {
                 .slice(0, 2)
                 .map((e) => e.title)
                 .join(" and ")}.`
-            : `I have analyzed the system records for "${query}". Explore the Work, Journal, or Lab modules to examine these systems in detail.`,
+            : `My architectural records do not contain verified documentation matching "${query}". Explore the Work, Journal, or Lab modules to inspect documented systems.`,
         references: evidence.map((e) => ({
           type: e.sourceType,
-          id: e.slug || e.sourceId,
+          id: e.sourceId,
           title: e.title,
           slug: e.slug,
         })),
@@ -143,40 +173,49 @@ export class TovuService {
             ? [classification.suggestedAction]
             : [{ label: "Examine Work", action: "navigate", target: "work" }],
         intent: classification.intent,
+        fallbackUsed: true,
       });
     }
 
-    // Ensure actions exist for navigation queries if the model omitted them
-    if (classification.suggestedAction && (!response.actions || response.actions.length === 0)) {
-      response.actions = [classification.suggestedAction as any];
-    }
+    // 5. Strict Grounding Enforcement (strip hallucinated slugs, routes, or non-existent references)
+    response = groundTovuResponse(response, evidence, classification.suggestedAction);
 
     // 6. Conversation Persistence
-    if (input.conversationId) {
+    let persistenceStatus: "persisted" | "ephemeral" | "failed" = "ephemeral";
+    if (activeConversationId) {
       try {
+        await this.conversationService.addMessage(activeConversationId, "user", query);
         await this.conversationService.addMessage(
-          input.conversationId,
-          "user",
-          query
-        );
-        await this.conversationService.addMessage(
-          input.conversationId,
+          activeConversationId,
           "assistant",
           response.message,
           {
             references: response.references,
             actions: response.actions,
             intent: response.intent,
+            fallbackUsed,
           }
         );
+        persistenceStatus = "persisted";
       } catch (err) {
+        persistenceStatus = "failed";
         logger.warn("Could not persist conversation turn", { error: String(err) });
       }
     }
 
+    response = {
+      ...response,
+      conversationId: activeConversationId,
+      fallbackUsed,
+      persistenceStatus,
+    };
+
     const durationMs = Date.now() - startTime;
     logger.info("Tovu inquiry completed", {
       intent: response.intent,
+      conversationId: activeConversationId,
+      fallbackUsed,
+      persistenceStatus,
       referenceCount: response.references.length,
       actionCount: response.actions.length,
       durationMs,
@@ -185,8 +224,3 @@ export class TovuService {
     return response;
   }
 }
-
-// Backwards-compatible aliases
-export const DoomService = TovuService;
-export const DoomServiceInputSchema = TovuServiceInputSchema;
-export type DoomServiceInput = TovuServiceInput;

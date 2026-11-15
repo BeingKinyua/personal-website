@@ -65,6 +65,8 @@ export class LabRepository {
 
       if (filter.status) {
         query = query.eq("status", filter.status);
+      } else if (filter.excludeArchived) {
+        query = query.neq("status", "archived");
       }
       if (filter.category) {
         query = query.eq("category", filter.category);

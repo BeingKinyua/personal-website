@@ -29,7 +29,7 @@ export const TovuResponse: React.FC<TovuResponseProps> = ({
   return (
     <div ref={containerRef} className="space-y-4">
       <div className="flex items-center justify-between pb-2 border-b border-[var(--tovu-border-hairline)]">
-        <span className="tovu-identity doom-identity text-[13px] font-mono font-semibold text-[var(--tovu-accent)] tracking-wider uppercase">
+        <span className="tovu-identity text-[13px] font-mono font-semibold text-[var(--tovu-accent)] tracking-wider uppercase">
           Tovu
         </span>
       </div>
@@ -37,7 +37,7 @@ export const TovuResponse: React.FC<TovuResponseProps> = ({
       <div className="space-y-2.5 text-[15px] sm:text-base text-[var(--tovu-text-primary)] leading-[1.65]">
         {lines.map((line, idx) => (
           <div key={idx} className="overflow-hidden">
-            <p className="tovu-thought-line doom-thought-line will-change-transform">
+            <p className="tovu-thought-line will-change-transform">
               {line}
             </p>
           </div>
@@ -63,7 +63,7 @@ export const TovuResponse: React.FC<TovuResponseProps> = ({
                     onNavigate(ref.type === "concept" ? "knowledge" : ref.type);
                   }
                 }}
-                className="tovu-info-card doom-info-card text-left p-3 rounded-xl bg-[var(--tovu-bg-elevated)] border border-[var(--tovu-border-hairline)] hover:border-[var(--tovu-accent-border)] transition-colors cursor-pointer group flex items-start gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
+                className="tovu-info-card text-left p-3 rounded-xl bg-[var(--tovu-bg-elevated)] border border-[var(--tovu-border-hairline)] hover:border-[var(--tovu-accent-border)] transition-colors cursor-pointer group flex items-start gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
               >
                 <div className="mt-0.5 p-1.5 rounded-lg bg-[var(--tovu-bg-surface)] text-[var(--tovu-accent)] shrink-0">
                   {ref.type === "project" && <Terminal className="w-4 h-4" />}
@@ -107,7 +107,7 @@ export const TovuResponse: React.FC<TovuResponseProps> = ({
                   onNavigate(action.target);
                 }
               }}
-              className="tovu-action-btn doom-action-btn min-h-[40px] inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--tovu-accent-soft)] hover:bg-[var(--tovu-accent)] border border-[var(--tovu-accent-border)] text-[var(--tovu-accent)] hover:text-[var(--tovu-accent-ink)] text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
+              className="tovu-action-btn min-h-[40px] inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--tovu-accent-soft)] hover:bg-[var(--tovu-accent)] border border-[var(--tovu-accent-border)] text-[var(--tovu-accent)] hover:text-[var(--tovu-accent-ink)] text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--tovu-accent)]"
             >
               <span>{action.label}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -118,6 +118,3 @@ export const TovuResponse: React.FC<TovuResponseProps> = ({
     </div>
   );
 };
-
-// Backwards-compatible alias
-export const DoomResponse = TovuResponse;

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
-import { ArrowLeft, ArrowRight, Github, Terminal, Copy, Check, Share2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Github, Terminal, Copy, Check, Share2, RefreshCw } from "lucide-react";
 import Lenis from "lenis";
-import { PROJECTS } from "../../data/projects";
+import { useProjectBySlug, useProjectsData } from "../../hooks/useContentData";
 import { ImmersiveOverlay } from "../immersive/ImmersiveOverlay";
 import { ImmersiveHeader } from "../immersive/ImmersiveHeader";
 import { ReaderProgress } from "../immersive/ReaderProgress";
@@ -33,16 +33,23 @@ export const ProjectReader: React.FC<ProjectReaderProps> = ({
   const [isCodeCopied, setIsCodeCopied] = useState(false);
   const [activeNode, setActiveNode] = useState<string | null>(null);
 
-  const project = useMemo(() => {
-    if (!slug) return null;
-    return PROJECTS.find((p) => p.slug === slug || p.id === slug) || null;
+  const { data: project, loading, notFound, error, reload } = useProjectBySlug(slug);
+  const { data: allProjects } = useProjectsData();
+
+  useEffect(() => {
+    setActiveNode(null);
+    if (scrollerRef.current) {
+      scrollerRef.current.scrollTop = 0;
+    }
   }, [slug]);
 
-  const currentIndex = project ? PROJECTS.findIndex((p) => p.id === project.id) : -1;
-  const prevProject = currentIndex > 0 ? PROJECTS[currentIndex - 1] : null;
+  const currentIndex = project
+    ? allProjects.findIndex((p) => p.slug === project.slug || p.id === project.id)
+    : -1;
+  const prevProject = currentIndex > 0 ? allProjects[currentIndex - 1] : null;
   const nextProject =
-    currentIndex >= 0 && currentIndex < PROJECTS.length - 1
-      ? PROJECTS[currentIndex + 1]
+    currentIndex >= 0 && currentIndex < allProjects.length - 1
+      ? allProjects[currentIndex + 1]
       : null;
 
   const {
@@ -63,7 +70,7 @@ export const ProjectReader: React.FC<ProjectReaderProps> = ({
   } = useReaderSettings();
 
   const { progress } = useReaderProgress(scrollerRef);
-  const audio = useAudioPlayer(project?.id, "project");
+  const audio = useAudioPlayer(project?.slug || project?.id, "project");
 
   const tocItems = useMemo<ToCItem[]>(() => {
     if (!project) return [];
@@ -108,7 +115,7 @@ export const ProjectReader: React.FC<ProjectReaderProps> = ({
     return () => window.removeEventListener("keydown", handleKey);
   }, [project, prevProject, nextProject, onSelectProject]);
 
-  if (!project) return null;
+  if (!slug) return null;
 
   return (
     <ImmersiveOverlay
@@ -122,393 +129,467 @@ export const ProjectReader: React.FC<ProjectReaderProps> = ({
 
       <ImmersiveHeader
         moduleLabel="WORK"
-        moduleBadge={`Project ${project.number}`}
-        title={project.title}
+        moduleBadge={project ? `Project ${project.number}` : "Case Study"}
+        title={project ? project.title : loading ? "Loading..." : notFound ? "Not Found" : "Unavailable"}
         onClose={onClose}
         isAudioPlaying={audio.isPlaying}
         isAudioOpen={audio.isOpen}
         audioMode={audio.mode}
         onToggleAudio={() => (audio.isOpen ? audio.closePanel() : audio.openPanel())}
-        hasToC={true}
+        hasToC={Boolean(project)}
         isToCOpen={isToCOpen}
         onToggleToC={() => setIsToCOpen((prev) => !prev)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         headerThemeClasses={headerThemeClasses}
       />
 
-      <TableOfContents
-        items={tocItems}
-        containerRef={scrollerRef}
-        isOpen={isToCOpen}
-        onToggle={() => setIsToCOpen((prev) => !prev)}
-        onClose={() => setIsToCOpen(false)}
-      />
-
-      <ReaderSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        settings={settings}
-        onUpdateSetting={updateSetting}
-        onReset={resetSettings}
-      />
-
-      <AudioPanel
-        isOpen={audio.isOpen}
-        onClose={audio.dismissPlayer}
-        onMinimize={audio.closePanel}
-        mode={audio.mode}
-        setMode={audio.setMode}
-        isPlaying={audio.isPlaying}
-        onTogglePlay={audio.togglePlay}
-        currentTime={audio.currentTime}
-        duration={audio.duration}
-        onSeek={audio.seek}
-        tracks={audio.tracks}
-        currentTrack={audio.currentTrack}
-        onSelectTrack={audio.setTrack}
-        onNextTrack={audio.nextTrack}
-        onPrevTrack={audio.prevTrack}
-        narration={audio.narration}
-        voices={audio.voices}
-        selectedVoice={audio.selectedVoice}
-        onSelectVoice={audio.setSelectedVoice}
-        playbackSpeed={audio.playbackSpeed}
-        onSetPlaybackSpeed={audio.setPlaybackSpeed}
-      />
-
-      {audio.isMinimized && (
-        <MiniAudioPlayer
-          isPlaying={audio.isPlaying}
-          onTogglePlay={audio.togglePlay}
-          mode={audio.mode}
-          title={
-            audio.mode === "ambient"
-              ? audio.currentTrack.title
-              : audio.narration?.title || `${project.title} Audio Walkthrough`
-          }
-          artistOrType={
-            audio.mode === "ambient" ? audio.currentTrack.artist : "Architecture Walkthrough"
-          }
-          onExpand={audio.openPanel}
-          onDismiss={audio.dismissPlayer}
-        />
+      {loading && (
+        <main aria-busy="true" className={`mx-auto px-6 sm:px-10 py-14 sm:py-20 ${contentWidthClasses} space-y-8 animate-pulse`}>
+          <div className="h-4 w-36 rounded bg-current/10" />
+          <div className="h-12 w-3/4 rounded bg-current/10" />
+          <div className="h-6 w-full rounded bg-current/10" />
+          <div className="h-44 w-full rounded-2xl bg-current/10" />
+          <div className="space-y-3 pt-6">
+            <div className="h-4 w-full rounded bg-current/10" />
+            <div className="h-4 w-5/6 rounded bg-current/10" />
+            <div className="h-4 w-4/5 rounded bg-current/10" />
+          </div>
+        </main>
       )}
 
-      <main className={`mx-auto px-6 sm:px-10 py-14 sm:py-20 ${contentWidthClasses} space-y-16`}>
-        {/* HERO SPECIFICATION */}
-        <section id="sec-hero" className="space-y-6">
-          <div className={`flex flex-wrap items-center justify-between gap-3 text-[13px] font-mono ${mutedTextClass}`}>
-            <div className="flex items-center gap-2.5">
-              <span className={`font-semibold uppercase tracking-wider ${accentTextClass}`}>
-                Case Study
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>{project.category}</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {project.githubUrl && (
-                <a
-                  href={project.githubUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`min-h-[36px] px-3 inline-flex items-center gap-1.5 rounded-lg border transition-colors ${surfaceClass} ${headingClass}`}
-                  title="GitHub Repository"
-                >
-                  <Github className="w-4 h-4" />
-                  <span>Source</span>
-                </a>
-              )}
+      {!loading && error && (
+        <main className={`mx-auto px-6 sm:px-10 py-20 ${contentWidthClasses}`}>
+          <div className={`rounded-2xl border p-8 sm:p-10 space-y-5 ${surfaceClass}`}>
+            <p className={`text-[13px] font-mono uppercase tracking-wider ${accentTextClass}`}>
+              Failed to Load Case Study
+            </p>
+            <h1 className={`font-display text-2xl sm:text-3xl font-semibold ${headingClass}`}>
+              Unable to retrieve project specification
+            </h1>
+            <p className={`text-base ${bodyTextClass}`}>{error}</p>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
-                onClick={handleCopyLink}
-                className={`min-h-[36px] px-3 inline-flex items-center gap-1.5 rounded-lg border transition-colors cursor-pointer ${surfaceClass}`}
-                title="Copy shareable link"
+                onClick={reload}
+                className="min-h-[44px] inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--tovu-text-primary)] text-[var(--tovu-bg-canvas)] text-sm font-medium cursor-pointer"
               >
-                {isCopied ? (
-                  <>
-                    <Check className={`w-3.5 h-3.5 ${accentTextClass}`} />
-                    <span className={accentTextClass}>Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>Share</span>
-                  </>
-                )}
+                <RefreshCw className="w-4 h-4" />
+                <span>Retry</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className={`min-h-[44px] inline-flex items-center gap-2 px-5 py-2.5 rounded-full border text-sm font-medium cursor-pointer ${surfaceClass} ${headingClass}`}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Return to Work</span>
               </button>
             </div>
           </div>
+        </main>
+      )}
 
-          <h1
-            className={`font-display font-semibold tracking-tight leading-[1.05] text-[clamp(2.25rem,4.5vw,3.75rem)] ${headingClass}`}
-          >
-            {project.title}
-          </h1>
-
-          <p className={`text-xl sm:text-2xl leading-[1.55] ${bodyTextClass}`}>
-            {project.subtitle}
-          </p>
-
-          <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-mono ${mutedTextClass}`}>
-            {project.technologies.map((tech, idx) => (
-              <React.Fragment key={tech}>
-                {idx > 0 && <span aria-hidden="true">·</span>}
-                <span>{tech}</span>
-              </React.Fragment>
-            ))}
-          </div>
-
-          {project.metrics && (
-            <div className={`grid grid-cols-1 sm:grid-cols-3 gap-6 p-6 sm:p-8 rounded-2xl border mt-6 ${surfaceClass}`}>
-              {project.metrics.map((metric, i) => (
-                <div key={i} className="space-y-1">
-                  <div className={`text-2xl sm:text-3xl font-mono font-semibold tabular-nums ${accentTextClass}`}>
-                    {metric.value}
-                  </div>
-                  <div className={`text-sm font-medium ${headingClass}`}>
-                    {metric.label}
-                  </div>
-                  <div className={`text-[13px] font-mono ${mutedTextClass}`}>
-                    {metric.detail}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* 01 // OVERVIEW */}
-        <section id="sec-overview" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
-          <p className={`text-[13px] font-mono uppercase tracking-wider ${accentTextClass}`}>
-            01 · System Intent
-          </p>
-          <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
-            Architectural Philosophy &amp; Intent
-          </h2>
-          <p className={`${fontSizeClasses} ${bodyTextClass}`}>
-            {project.deepDive.overview}
-          </p>
-        </section>
-
-        {/* 02 // PROBLEM */}
-        <section id="sec-problem" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
-          <p className={`text-[13px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
-            02 · Failure Modes
-          </p>
-          <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
-            Structural Vulnerabilities &amp; Scale Friction
-          </h2>
-          <p className={`${fontSizeClasses} ${bodyTextClass}`}>
-            {project.deepDive.problem}
-          </p>
-        </section>
-
-        {/* 03 // RESEARCH & INVARIANTS */}
-        <section id="sec-research" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
-          <p className={`text-[13px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
-            03 · Foundational Invariants
-          </p>
-          <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
-            Theoretical Grounding &amp; Boundary Analysis
-          </h2>
-          <p className={`${fontSizeClasses} ${bodyTextClass}`}>
-            {project.deepDive.research}
-          </p>
-        </section>
-
-        {/* 04 // SOLUTION */}
-        <section id="sec-solution" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
-          <p className={`text-[13px] font-mono uppercase tracking-wider ${accentTextClass}`}>
-            04 · Architectural Solution
-          </p>
-          <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
-            Deterministic Construction
-          </h2>
-          <p className={`${fontSizeClasses} ${bodyTextClass}`}>
-            {project.deepDive.solution}
-          </p>
-        </section>
-
-        {/* 05 // ARCHITECTURE & TOPOLOGY DIAGRAM */}
-        <section id="sec-topology" className={`space-y-4 pt-8 border-t ${borderClass} scroll-mt-24`}>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className={`text-[13px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
-                05 · Architecture &amp; Topology
-              </p>
-              <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
-                Signal Flow &amp; Pipeline Nodes
-              </h2>
-            </div>
-            <span className={`text-[13px] font-mono hidden sm:inline ${mutedTextClass}`}>
-              Select nodes to inspect
-            </span>
-          </div>
-
-          <div className={`relative w-full h-[300px] sm:h-[360px] rounded-2xl border overflow-hidden p-4 ${insetClass}`}>
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
-              {project.architectureLines.map((line, idx) => {
-                const fromNode = project.architectureNodes.find((n) => n.id === line.from);
-                const toNode = project.architectureNodes.find((n) => n.id === line.to);
-                if (!fromNode || !toNode) return null;
-
-                return (
-                  <line
-                    key={idx}
-                    x1={`${fromNode.x}%`}
-                    y1={`${fromNode.y}%`}
-                    x2={`${toNode.x}%`}
-                    y2={`${toNode.y}%`}
-                    stroke="currentColor"
-                    strokeOpacity="0.22"
-                    strokeWidth="1.5"
-                    strokeDasharray={line.active ? "4 4" : undefined}
-                  />
-                );
-              })}
-            </svg>
-
-            {project.architectureNodes.map((node) => {
-              const isSelected = activeNode === node.id;
-              return (
-                <button
-                  key={node.id}
-                  type="button"
-                  onClick={() => setActiveNode(node.id)}
-                  style={{ left: `${node.x}%`, top: `${node.y}%` }}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl border text-[13px] font-mono cursor-pointer transition-all duration-150 whitespace-nowrap ${
-                    isSelected
-                      ? "border-teal-400 bg-teal-500/20 scale-105 font-semibold"
-                      : `${surfaceClass} ${headingClass}`
-                  }`}
-                >
-                  {node.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <p className={`text-[15px] leading-relaxed p-5 rounded-2xl border ${surfaceClass} ${bodyTextClass}`}>
-            {project.deepDive.architectureNotes}
-          </p>
-        </section>
-
-        {/* 06 // IMPLEMENTATION CODE SNIPPET */}
-        {project.deepDive.implementationSnippet && (
-          <section id="sec-implementation" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
-            <div className={`flex items-center justify-between text-[13px] font-mono ${mutedTextClass}`}>
-              <span className="inline-flex items-center gap-2">
-                <Terminal className={`w-4 h-4 ${accentTextClass}`} />
-                06 · {project.deepDive.implementationSnippet.filename}
-              </span>
-              <button
-                type="button"
-                onClick={handleCopyCode}
-                className={`min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer ${surfaceClass}`}
-              >
-                {isCodeCopied ? (
-                  <>
-                    <Check className={`w-3.5 h-3.5 ${accentTextClass}`} />
-                    <span className={accentTextClass}>Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className={`rounded-2xl border p-5 sm:p-6 font-mono text-[13px] sm:text-sm overflow-x-auto leading-relaxed ${insetClass}`}>
-              <pre>
-                <code>{project.deepDive.implementationSnippet.code}</code>
-              </pre>
-            </div>
-          </section>
-        )}
-
-        {/* 07 // EMPIRICAL RESULTS */}
-        <section id="sec-results" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
-          <p className={`text-[13px] font-mono uppercase tracking-wider ${accentTextClass}`}>
-            07 · Empirical Results
-          </p>
-          <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
-            Verified Outcomes &amp; Benchmark Data
-          </h2>
-          <p className={`${fontSizeClasses} ${bodyTextClass}`}>
-            {project.deepDive.results}
-          </p>
-        </section>
-
-        {/* 08 // LESSONS */}
-        <section id="sec-lessons" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
-          <p className={`text-[13px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
-            08 · Engineering Lessons
-          </p>
-          <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
-            Key Architectural Takeaways
-          </h2>
-          <p className={`${fontSizeClasses} ${bodyTextClass}`}>
-            {project.deepDive.lessons}
-          </p>
-        </section>
-
-        {/* FOOTER NAVIGATION */}
-        <footer id="sec-navigation" className={`mt-24 pt-10 border-t ${borderClass} space-y-8`}>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 text-sm">
-            {prevProject ? (
-              <button
-                type="button"
-                onClick={() => onSelectProject(prevProject.slug)}
-                className={`flex items-center gap-3 p-5 rounded-2xl border text-left transition-colors group cursor-pointer flex-1 ${surfaceClass}`}
-              >
-                <ArrowLeft className="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform" />
-                <div className="min-w-0">
-                  <span className={`text-[13px] font-mono uppercase block ${mutedTextClass}`}>
-                    Previous Project
-                  </span>
-                  <span className={`font-display font-semibold truncate block ${headingClass}`}>
-                    {prevProject.number}: {prevProject.title}
-                  </span>
-                </div>
-              </button>
-            ) : (
-              <div className="flex-1" />
-            )}
-
-            {nextProject && (
-              <button
-                type="button"
-                onClick={() => onSelectProject(nextProject.slug)}
-                className={`flex items-center justify-end text-right gap-3 p-5 rounded-2xl border transition-colors group cursor-pointer flex-1 ${surfaceClass}`}
-              >
-                <div className="min-w-0">
-                  <span className={`text-[13px] font-mono uppercase block ${mutedTextClass}`}>
-                    Next Project
-                  </span>
-                  <span className={`font-display font-semibold truncate block ${headingClass}`}>
-                    {nextProject.number}: {nextProject.title}
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" />
-              </button>
-            )}
-          </div>
-
-          <div className="text-center pt-2">
+      {!loading && !error && (notFound || !project) && (
+        <main className={`mx-auto px-6 sm:px-10 py-20 ${contentWidthClasses}`}>
+          <div className={`rounded-2xl border p-8 sm:p-10 space-y-5 ${surfaceClass}`}>
+            <p className={`text-[13px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
+              404 · Not Found
+            </p>
+            <h1 className={`font-display text-2xl sm:text-3xl font-semibold ${headingClass}`}>
+              Case study &ldquo;{slug}&rdquo; could not be found
+            </h1>
+            <p className={`text-base ${bodyTextClass}`}>
+              The requested system specification may have been moved, renamed, or unpublished.
+            </p>
             <button
               type="button"
               onClick={onClose}
-              className={`min-h-[44px] inline-flex items-center gap-2 px-6 py-2.5 rounded-full border text-sm font-medium transition-colors cursor-pointer ${surfaceClass} ${headingClass}`}
+              className={`min-h-[44px] inline-flex items-center gap-2 px-6 py-2.5 rounded-full border text-sm font-medium cursor-pointer ${surfaceClass} ${headingClass}`}
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Return to Work</span>
             </button>
           </div>
-        </footer>
-      </main>
+        </main>
+      )}
+
+      {!loading && !error && project && (
+        <>
+          <TableOfContents
+            items={tocItems}
+            containerRef={scrollerRef}
+            isOpen={isToCOpen}
+            onToggle={() => setIsToCOpen((prev) => !prev)}
+            onClose={() => setIsToCOpen(false)}
+          />
+
+          <ReaderSettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            settings={settings}
+            onUpdateSetting={updateSetting}
+            onReset={resetSettings}
+          />
+
+          <AudioPanel
+            isOpen={audio.isOpen}
+            onClose={audio.dismissPlayer}
+            onMinimize={audio.closePanel}
+            mode={audio.mode}
+            setMode={audio.setMode}
+            isPlaying={audio.isPlaying}
+            onTogglePlay={audio.togglePlay}
+            currentTime={audio.currentTime}
+            duration={audio.duration}
+            onSeek={audio.seek}
+            tracks={audio.tracks}
+            currentTrack={audio.currentTrack}
+            onSelectTrack={audio.setTrack}
+            onNextTrack={audio.nextTrack}
+            onPrevTrack={audio.prevTrack}
+            narration={audio.narration}
+            voices={audio.voices}
+            selectedVoice={audio.selectedVoice}
+            onSelectVoice={audio.setSelectedVoice}
+            playbackSpeed={audio.playbackSpeed}
+            onSetPlaybackSpeed={audio.setPlaybackSpeed}
+          />
+
+          {audio.isMinimized && (
+            <MiniAudioPlayer
+              isPlaying={audio.isPlaying}
+              onTogglePlay={audio.togglePlay}
+              mode={audio.mode}
+              title={
+                audio.mode === "ambient"
+                  ? audio.currentTrack.title
+                  : audio.narration?.title || `${project.title} Audio Walkthrough`
+              }
+              artistOrType={
+                audio.mode === "ambient" ? audio.currentTrack.artist : "Architecture Walkthrough"
+              }
+              onExpand={audio.openPanel}
+              onDismiss={audio.dismissPlayer}
+            />
+          )}
+
+          <main className={`mx-auto px-6 sm:px-10 py-14 sm:py-20 ${contentWidthClasses} space-y-16`}>
+            {/* HERO SPECIFICATION */}
+            <section id="sec-hero" className="space-y-6">
+              <div className={`flex flex-wrap items-center justify-between gap-3 text-[13px] font-mono ${mutedTextClass}`}>
+                <div className="flex items-center gap-2.5">
+                  <span className={`font-semibold uppercase tracking-wider ${accentTextClass}`}>
+                    Case Study
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{project.category}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {project.githubUrl && (
+                    <a
+                      href={project.githubUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`min-h-[36px] px-3 inline-flex items-center gap-1.5 rounded-lg border transition-colors ${surfaceClass} ${headingClass}`}
+                      title="GitHub Repository"
+                    >
+                      <Github className="w-4 h-4" />
+                      <span>Source</span>
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className={`min-h-[36px] px-3 inline-flex items-center gap-1.5 rounded-lg border transition-colors cursor-pointer ${surfaceClass}`}
+                    title="Copy shareable link"
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check className={`w-3.5 h-3.5 ${accentTextClass}`} />
+                        <span className={accentTextClass}>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>Share</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <h1
+                className={`font-display font-semibold tracking-tight leading-[1.05] text-[clamp(2.25rem,4.5vw,3.75rem)] ${headingClass}`}
+              >
+                {project.title}
+              </h1>
+
+              <p className={`text-xl sm:text-2xl leading-[1.55] ${bodyTextClass}`}>
+                {project.subtitle}
+              </p>
+
+              <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] font-mono ${mutedTextClass}`}>
+                {project.technologies.map((tech, idx) => (
+                  <React.Fragment key={tech}>
+                    {idx > 0 && <span aria-hidden="true">·</span>}
+                    <span>{tech}</span>
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {project.metrics && project.metrics.length > 0 && (
+                <div className={`grid grid-cols-1 sm:grid-cols-3 gap-6 p-6 sm:p-8 rounded-2xl border mt-6 ${surfaceClass}`}>
+                  {project.metrics.map((metric, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className={`text-2xl sm:text-3xl font-mono font-semibold tabular-nums ${accentTextClass}`}>
+                        {metric.value}
+                      </div>
+                      <div className={`text-sm font-medium ${headingClass}`}>
+                        {metric.label}
+                      </div>
+                      <div className={`text-[13px] font-mono ${mutedTextClass}`}>
+                        {metric.detail}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* 01 // OVERVIEW */}
+            <section id="sec-overview" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
+              <p className={`text-[13px] font-mono uppercase tracking-wider ${accentTextClass}`}>
+                01 · System Intent
+              </p>
+              <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
+                Architectural Philosophy &amp; Intent
+              </h2>
+              <p className={`${fontSizeClasses} ${bodyTextClass}`}>
+                {project.deepDive.overview}
+              </p>
+            </section>
+
+            {/* 02 // PROBLEM */}
+            <section id="sec-problem" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
+              <p className={`text-[13px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
+                02 · Failure Modes
+              </p>
+              <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
+                Structural Vulnerabilities &amp; Scale Friction
+              </h2>
+              <p className={`${fontSizeClasses} ${bodyTextClass}`}>
+                {project.deepDive.problem}
+              </p>
+            </section>
+
+            {/* 03 // RESEARCH & INVARIANTS */}
+            <section id="sec-research" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
+              <p className={`text-[13px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
+                03 · Foundational Invariants
+              </p>
+              <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
+                Theoretical Grounding &amp; Boundary Analysis
+              </h2>
+              <p className={`${fontSizeClasses} ${bodyTextClass}`}>
+                {project.deepDive.research}
+              </p>
+            </section>
+
+            {/* 04 // SOLUTION */}
+            <section id="sec-solution" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
+              <p className={`text-[13px] font-mono uppercase tracking-wider ${accentTextClass}`}>
+                04 · Architectural Solution
+              </p>
+              <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
+                Deterministic Construction
+              </h2>
+              <p className={`${fontSizeClasses} ${bodyTextClass}`}>
+                {project.deepDive.solution}
+              </p>
+            </section>
+
+            {/* 05 // ARCHITECTURE & TOPOLOGY DIAGRAM */}
+            <section id="sec-topology" className={`space-y-4 pt-8 border-t ${borderClass} scroll-mt-24`}>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className={`text-[13px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
+                    05 · Architecture &amp; Topology
+                  </p>
+                  <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
+                    Signal Flow &amp; Pipeline Nodes
+                  </h2>
+                </div>
+                <span className={`text-[13px] font-mono hidden sm:inline ${mutedTextClass}`}>
+                  Select nodes to inspect
+                </span>
+              </div>
+
+              <div className={`relative w-full h-[300px] sm:h-[360px] rounded-2xl border overflow-hidden p-4 ${insetClass}`}>
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+                  {project.architectureLines.map((line, idx) => {
+                    const fromNode = project.architectureNodes.find((n) => n.id === line.from);
+                    const toNode = project.architectureNodes.find((n) => n.id === line.to);
+                    if (!fromNode || !toNode) return null;
+
+                    return (
+                      <line
+                        key={idx}
+                        x1={`${fromNode.x}%`}
+                        y1={`${fromNode.y}%`}
+                        x2={`${toNode.x}%`}
+                        y2={`${toNode.y}%`}
+                        stroke="currentColor"
+                        strokeOpacity="0.22"
+                        strokeWidth="1.5"
+                        strokeDasharray={line.active ? "4 4" : undefined}
+                      />
+                    );
+                  })}
+                </svg>
+
+                {project.architectureNodes.map((node) => {
+                  const isSelected = activeNode === node.id;
+                  return (
+                    <button
+                      key={node.id}
+                      type="button"
+                      onClick={() => setActiveNode(node.id)}
+                      style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl border text-[13px] font-mono cursor-pointer transition-all duration-150 whitespace-nowrap ${
+                        isSelected
+                          ? "border-teal-400 bg-teal-500/20 scale-105 font-semibold"
+                          : `${surfaceClass} ${headingClass}`
+                      }`}
+                    >
+                      {node.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className={`text-[15px] leading-relaxed p-5 rounded-2xl border ${surfaceClass} ${bodyTextClass}`}>
+                {project.deepDive.architectureNotes}
+              </p>
+            </section>
+
+            {/* 06 // IMPLEMENTATION CODE SNIPPET */}
+            {project.deepDive.implementationSnippet && (
+              <section id="sec-implementation" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
+                <div className={`flex items-center justify-between text-[13px] font-mono ${mutedTextClass}`}>
+                  <span className="inline-flex items-center gap-2">
+                    <Terminal className={`w-4 h-4 ${accentTextClass}`} />
+                    06 · {project.deepDive.implementationSnippet.filename}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyCode}
+                    className={`min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer ${surfaceClass}`}
+                  >
+                    {isCodeCopied ? (
+                      <>
+                        <Check className={`w-3.5 h-3.5 ${accentTextClass}`} />
+                        <span className={accentTextClass}>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className={`rounded-2xl border p-5 sm:p-6 font-mono text-[13px] sm:text-sm overflow-x-auto leading-relaxed ${insetClass}`}>
+                  <pre>
+                    <code>{project.deepDive.implementationSnippet.code}</code>
+                  </pre>
+                </div>
+              </section>
+            )}
+
+            {/* 07 // EMPIRICAL RESULTS */}
+            <section id="sec-results" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
+              <p className={`text-[13px] font-mono uppercase tracking-wider ${accentTextClass}`}>
+                07 · Empirical Results
+              </p>
+              <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
+                Verified Outcomes &amp; Benchmark Data
+              </h2>
+              <p className={`${fontSizeClasses} ${bodyTextClass}`}>
+                {project.deepDive.results}
+              </p>
+            </section>
+
+            {/* 08 // LESSONS */}
+            <section id="sec-lessons" className={`space-y-3 pt-8 border-t ${borderClass} scroll-mt-24`}>
+              <p className={`text-[13px] font-mono uppercase tracking-wider ${mutedTextClass}`}>
+                08 · Engineering Lessons
+              </p>
+              <h2 className={`font-display text-2xl sm:text-3xl font-semibold tracking-tight ${headingClass}`}>
+                Key Architectural Takeaways
+              </h2>
+              <p className={`${fontSizeClasses} ${bodyTextClass}`}>
+                {project.deepDive.lessons}
+              </p>
+            </section>
+
+            {/* FOOTER NAVIGATION */}
+            <footer id="sec-navigation" className={`mt-24 pt-10 border-t ${borderClass} space-y-8`}>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 text-sm">
+                {prevProject ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectProject(prevProject.slug)}
+                    className={`flex items-center gap-3 p-5 rounded-2xl border text-left transition-colors group cursor-pointer flex-1 ${surfaceClass}`}
+                  >
+                    <ArrowLeft className="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform" />
+                    <div className="min-w-0">
+                      <span className={`text-[13px] font-mono uppercase block ${mutedTextClass}`}>
+                        Previous Project
+                      </span>
+                      <span className={`font-display font-semibold truncate block ${headingClass}`}>
+                        {prevProject.number}: {prevProject.title}
+                      </span>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="flex-1" />
+                )}
+
+                {nextProject && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectProject(nextProject.slug)}
+                    className={`flex items-center justify-end text-right gap-3 p-5 rounded-2xl border transition-colors group cursor-pointer flex-1 ${surfaceClass}`}
+                  >
+                    <div className="min-w-0">
+                      <span className={`text-[13px] font-mono uppercase block ${mutedTextClass}`}>
+                        Next Project
+                      </span>
+                      <span className={`font-display font-semibold truncate block ${headingClass}`}>
+                        {nextProject.number}: {nextProject.title}
+                      </span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                )}
+              </div>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className={`min-h-[44px] inline-flex items-center gap-2 px-6 py-2.5 rounded-full border text-sm font-medium transition-colors cursor-pointer ${surfaceClass} ${headingClass}`}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Return to Work</span>
+                </button>
+              </div>
+            </footer>
+          </main>
+        </>
+      )}
     </ImmersiveOverlay>
   );
 };

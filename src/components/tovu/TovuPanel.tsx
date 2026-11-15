@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Sparkles, X, Send } from "lucide-react";
 import { askTovu } from "../../services/tovu";
+import { ApiClientError } from "../../services/apiClient";
 import { TovuChatMessage } from "../../types/tovu";
 import { TovuResponse } from "../motion/TovuResponse";
 import { useScrollLock } from "../../hooks/useScrollLock";
+import { useDialogFocusTrap } from "../../hooks/useDialogFocusTrap";
 import Lenis from "lenis";
 
 export interface TovuPanelProps {
@@ -37,7 +39,7 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
       text: "Hello — I can help you explore Victor's engineered systems, essays, active lab experiments, and knowledge lattice.",
       timestamp: "Ready",
       actions: [
-        { label: "Explore AI projects", type: "open_project", target: "nyayo" },
+        { label: "Explore AI projects", type: "navigate", target: "work" },
         { label: "Current lab research", type: "navigate", target: "lab" },
         { label: "Read the Journal", type: "navigate", target: "journal" },
         { label: "About Victor", type: "navigate", target: "about" },
@@ -46,14 +48,23 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastInitialPromptRef = useRef<string | undefined>(undefined);
+
+  useDialogFocusTrap(isOpen, dialogRef, { initialFocusRef: inputRef });
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      lastInitialPromptRef.current = undefined;
+      return;
+    }
     setTimeout(() => inputRef.current?.focus(), 80);
-    if (initialPrompt) {
+    if (initialPrompt && initialPrompt !== lastInitialPromptRef.current) {
+      lastInitialPromptRef.current = initialPrompt;
       handleSendPrompt(initialPrompt);
     }
 
@@ -108,7 +119,15 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
     setLoading(true);
 
     try {
-      const response = await askTovu({ message: queryText });
+      const response = await askTovu({
+        message: queryText,
+        conversationId,
+      });
+
+      if (response.conversationId) {
+        setConversationId(response.conversationId);
+      }
+
       const tovuMessage: TovuChatMessage = {
         id: `tovu-${Date.now()}`,
         sender: "tovu",
@@ -118,14 +137,23 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
           new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         actions: response.actions,
         references: response.references,
+        fallbackUsed: response.fallbackUsed,
       };
       setMessages((prev) => [...prev, tovuMessage]);
-    } catch {
+    } catch (err) {
+      const errorText =
+        err instanceof ApiClientError && err.statusCode === 429
+          ? err.message
+          : err instanceof ApiClientError
+          ? `Tovu request failed (${err.code}): ${err.message}`
+          : "Unable to reach Tovu intelligence right now. Please try your question again.";
+
       const errorMessage: TovuChatMessage = {
         id: `tovu-err-${Date.now()}`,
         sender: "tovu",
-        text: "Unable to reach Tovu intelligence right now. Please try your question again.",
+        text: errorText,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        isError: true,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -143,12 +171,14 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         id="tovu-panel-container"
         role="dialog"
         aria-modal="true"
         aria-labelledby="tovu-panel-title"
+        tabIndex={-1}
         data-lenis-prevent="true"
-        className="relative w-full max-w-3xl h-[86vh] max-h-[760px] rounded-2xl border border-[var(--tovu-border-strong)] bg-[var(--tovu-bg-canvas)] shadow-2xl flex flex-col overflow-hidden text-[var(--tovu-text-primary)]"
+        className="relative w-full max-w-3xl h-[86vh] max-h-[760px] rounded-2xl border border-[var(--tovu-border-strong)] bg-[var(--tovu-bg-canvas)] shadow-2xl flex flex-col overflow-hidden text-[var(--tovu-text-primary)] focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -194,7 +224,7 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
           }}
         >
           {messages.map((msg) => {
-            const isTovu = msg.sender === "tovu" || msg.sender === "doom";
+            const isTovu = msg.sender === "tovu";
             return (
               <div
                 key={msg.id}
@@ -203,7 +233,9 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
                 <div
                   className={`max-w-[90%] sm:max-w-[82%] rounded-2xl p-5 ${
                     isTovu
-                      ? "bg-[var(--tovu-bg-surface)] border border-[var(--tovu-border-hairline)] text-[var(--tovu-text-primary)]"
+                      ? msg.isError
+                        ? "bg-red-500/10 border border-red-500/30 text-[var(--tovu-text-primary)]"
+                        : "bg-[var(--tovu-bg-surface)] border border-[var(--tovu-border-hairline)] text-[var(--tovu-text-primary)]"
                       : "bg-[var(--tovu-text-primary)] text-[var(--tovu-bg-canvas)] text-[15px] sm:text-base leading-relaxed"
                   }`}
                 >
@@ -230,11 +262,14 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
                   )}
 
                   <div
-                    className={`text-[12px] font-mono mt-3 text-right ${
+                    className={`text-[12px] font-mono mt-3 flex items-center justify-end gap-2 ${
                       isTovu ? "text-[var(--tovu-text-muted)]" : "opacity-70"
                     }`}
                   >
-                    {msg.timestamp}
+                    {msg.fallbackUsed && (
+                      <span className="text-[11px] opacity-80">Grounded summary ·</span>
+                    )}
+                    <span>{msg.timestamp}</span>
                   </div>
                 </div>
               </div>
@@ -305,6 +340,3 @@ export const TovuPanel: React.FC<TovuPanelProps> = ({
     </div>
   );
 };
-
-export const DoomPanel = TovuPanel;
-export type DoomPanelProps = TovuPanelProps;

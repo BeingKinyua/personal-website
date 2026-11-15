@@ -27,11 +27,11 @@ export interface TovuReference {
 export interface TovuRequest {
   message: string;
   conversationId?: string;
-  sessionId?: string;
   context?: {
     route?: string;
     module?: string;
   };
+  signal?: AbortSignal;
 }
 
 export interface TovuResponse {
@@ -40,22 +40,19 @@ export interface TovuResponse {
   references?: TovuReference[];
   intent?: string;
   confidence?: number;
+  conversationId?: string;
+  fallbackUsed?: boolean;
+  persistenceStatus?: "persisted" | "ephemeral" | "failed";
   timestamp?: string;
 }
 
 export interface TovuChatMessage {
   id: string;
-  sender: "user" | "tovu" | "doom";
+  sender: "user" | "tovu";
   text: string;
   timestamp: string;
   actions?: TovuAction[];
   references?: TovuReference[];
+  fallbackUsed?: boolean;
+  isError?: boolean;
 }
-
-// Backwards-compatible aliases
-export type DoomActionType = TovuActionType;
-export type DoomAction = TovuAction;
-export type DoomReference = TovuReference;
-export type DoomRequest = TovuRequest;
-export type DoomResponse = TovuResponse;
-export type DoomChatMessage = TovuChatMessage;

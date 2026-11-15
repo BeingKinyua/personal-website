@@ -1,7 +1,7 @@
 /**
- * VictorOS Intelligence Layer — Embeddings Provider Abstraction
+ * Tovu Intelligence Layer — Embeddings Provider Abstraction
  *
- * Implements Google Gemini text-embedding-004 (768 dimensions) with a deterministic
+ * Implements Google Gemini gemini-embedding-2 (768 dimensions) with a deterministic
  * mathematical fallback provider for offline/testing environments.
  */
 
@@ -11,6 +11,9 @@ import { getServerEnv } from "../../shared/env";
 import { logger } from "../../shared/logger";
 import { AppError } from "../../shared/errors";
 
+export const GEMINI_EMBEDDING_MODEL = "gemini-embedding-2";
+const EMBEDDING_TIMEOUT_MS = 10_000;
+
 export class EmbeddingProviderError extends AppError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, "EMBEDDING_PROVIDER_ERROR", 500, details);
@@ -18,11 +21,27 @@ export class EmbeddingProviderError extends AppError {
   }
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new EmbeddingProviderError(`Embedding request timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /**
  * High-performance deterministic fallback embedding provider.
  * Projects text tokens into a 768-dimensional unit vector using n-gram frequency
- * and hash projections. Enables robust offline testing and RAG development
- * without requiring active external API keys.
+ * and hash projections. Enables offline testing and RAG development when Gemini
+ * credentials are unavailable.
  */
 export class DeterministicEmbeddingProvider implements EmbeddingProvider {
   readonly name = "deterministic-local-768";
@@ -59,7 +78,7 @@ export class DeterministicEmbeddingProvider implements EmbeddingProvider {
         h2 = Math.imul(h2 ^ (c << 3), 0x5bd1e995);
       }
       const idx = Math.abs(h1) % this.dimensions;
-      const weight = ((h2 & 0xff) / 255) * 2 - 1; // [-1.0, 1.0]
+      const weight = ((h2 & 0xff) / 255) * 2 - 1;
       vec[idx] += weight;
     }
 
@@ -82,10 +101,10 @@ export class DeterministicEmbeddingProvider implements EmbeddingProvider {
 
 /**
  * Production Gemini Embedding Provider using `@google/genai`
- * Model: text-embedding-004 (768 dimensions)
+ * Model: gemini-embedding-2 (768 dimensions)
  */
 export class GeminiEmbeddingProvider implements EmbeddingProvider {
-  readonly name = "gemini-embedding-2-preview";
+  readonly name = GEMINI_EMBEDDING_MODEL;
   readonly dimensions = 768;
   private client: GoogleGenAI | null = null;
   private fallbackProvider = new DeterministicEmbeddingProvider();
@@ -100,20 +119,30 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
         "Gemini API key is not configured. Falling back to local deterministic embedding provider."
       );
     }
-    this.client = new GoogleGenAI({ apiKey: key });
+    this.client = new GoogleGenAI({
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
+      },
+    });
     return this.client;
   }
 
   async embedText(text: string): Promise<number[]> {
     try {
       const client = this.getClient();
-      const response = await client.models.embedContent({
-        model: "gemini-embedding-2-preview",
-        contents: text,
-        config: {
-          outputDimensionality: 768,
-        },
-      });
+      const response = await withTimeout(
+        client.models.embedContent({
+          model: GEMINI_EMBEDDING_MODEL,
+          contents: text,
+          config: {
+            outputDimensionality: 768,
+          },
+        }),
+        EMBEDDING_TIMEOUT_MS
+      );
 
       const values =
         response.embeddings?.[0]?.values ||
@@ -133,7 +162,6 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embedTexts(texts: string[]): Promise<number[][]> {
-    // Process in batches of 8 to respect rate limits
     const batchSize = 8;
     const results: number[][] = [];
 
@@ -149,6 +177,10 @@ export class GeminiEmbeddingProvider implements EmbeddingProvider {
 
 let activeProvider: EmbeddingProvider | null = null;
 
+export function resetEmbeddingProviderCache(): void {
+  activeProvider = null;
+}
+
 /**
  * Returns the configured embedding provider with automatic fallback.
  */
@@ -163,7 +195,7 @@ export function getEmbeddingProvider(): EmbeddingProvider {
   if (hasGemini) {
     try {
       activeProvider = new GeminiEmbeddingProvider(serverEnv.geminiApiKey);
-      logger.info("Initialized Gemini Embedding Provider (768 dimensions)");
+      logger.info(`Initialized Gemini Embedding Provider (${GEMINI_EMBEDDING_MODEL}, 768 dimensions)`);
       return activeProvider;
     } catch (err) {
       logger.warn("Failed to initialize Gemini embedding provider, falling back", {

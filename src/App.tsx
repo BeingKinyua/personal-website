@@ -6,7 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 // Shell Components
 import { SystemEntry } from "./components/shell/SystemEntry";
 import { OSNavigation } from "./components/shell/OSNavigation";
-import { CommandCenter } from "./components/shell/CommandCenter";
+import { CommandPalette } from "./components/shell/CommandPalette";
 import { OSFooter } from "./components/shell/OSFooter";
 
 // Tovu Intelligence
@@ -26,7 +26,7 @@ import { JournalReader } from "./components/journal/JournalReader";
 import { ProjectReader } from "./components/work/ProjectReader";
 
 // Hooks
-import { useCommandCenter } from "./hooks/useCommandCenter";
+import { useCommandPalette } from "./hooks/useCommandPalette";
 import { useTheme } from "./hooks/useTheme";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -50,8 +50,8 @@ export default function App() {
   const [selectedProjectSlug, setSelectedProjectSlug] = useState<string | null>(null);
   const [selectedArticleSlug, setSelectedArticleSlug] = useState<string | null>(null);
 
-  // Command Center state
-  const { isOpen: isCmdOpen, open: openCmd, close: closeCmd } = useCommandCenter();
+  // Command Palette state
+  const { isOpen: isCmdOpen, open: openCmd, close: closeCmd } = useCommandPalette();
 
   // Tovu Intelligence panel state
   const [isTovuOpen, setIsTovuOpen] = useState<boolean>(false);
@@ -205,7 +205,7 @@ export default function App() {
           <OSNavigation
             activeSection={activeSection}
             onNavigate={scrollToSection}
-            onOpenCommandCenter={openCmd}
+            onOpenCommandPalette={openCmd}
             onOpenTovu={() => {
               setTovuInitialPrompt("");
               setIsTovuOpen(true);
@@ -256,8 +256,8 @@ export default function App() {
             onNavigate={scrollToSection}
           />
 
-          {/* Command Center Modal (⌘ K) */}
-          <CommandCenter
+          {/* Command Palette Modal (⌘ K) */}
+          <CommandPalette
             isOpen={isCmdOpen}
             onClose={closeCmd}
             onNavigate={scrollToSection}

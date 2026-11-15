@@ -1,6 +1,6 @@
 /**
- * VictorOS Intelligence Layer — LLM Provider Abstraction
- * Supports Google Gemini (gemini-3.8-flash) with structured Zod parsing
+ * Tovu Intelligence Layer — LLM Provider Abstraction
+ * Supports Google Gemini (gemini-4-hydrogen) with structured Zod parsing
  * and a grounded fallback engine for offline/test environments.
  */
 
@@ -10,6 +10,9 @@ import { getServerEnv } from "../shared/env";
 import { logger } from "../shared/logger";
 import { AppError } from "../shared/errors";
 
+const DEFAULT_GENERATION_TIMEOUT_MS = 20_000;
+export const GEMINI_GENERATION_MODEL = "gemini-4-hydrogen";
+
 export class AIProviderError extends AppError {
   constructor(message: string, details?: Record<string, unknown>) {
     super(message, "AI_PROVIDER_ERROR", 500, details);
@@ -18,9 +21,9 @@ export class AIProviderError extends AppError {
 }
 
 export interface AIGenerationOptions {
-  temperature?: number;
   maxOutputTokens?: number;
   systemInstruction?: string;
+  timeoutMs?: number;
 }
 
 export interface AIModelProvider {
@@ -45,12 +48,28 @@ export function extractJsonFromText(rawText: string): string {
   return trimmed;
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new AIProviderError(`${label} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /**
  * Production Gemini Provider using `@google/genai`
- * Model: gemini-3.8-flash
+ * Model: gemini-4-hydrogen (do not pass temperature/topP/topK/candidateCount per Gemini 4 constraints)
  */
 export class GeminiAIProvider implements AIModelProvider {
-  readonly name = "gemini-3.8-flash";
+  readonly name = GEMINI_GENERATION_MODEL;
   private client: GoogleGenAI | null = null;
 
   constructor(private apiKey?: string) {}
@@ -61,22 +80,33 @@ export class GeminiAIProvider implements AIModelProvider {
     if (!key || key === "MY_GEMINI_API_KEY") {
       throw new AIProviderError("Gemini API key is not configured.");
     }
-    this.client = new GoogleGenAI({ apiKey: key });
+    this.client = new GoogleGenAI({
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build",
+        },
+      },
+    });
     return this.client;
   }
 
   async generateText(prompt: string, options: AIGenerationOptions = {}): Promise<string> {
     try {
       const client = this.getClient();
-      const response = await client.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: prompt,
-        config: {
-          systemInstruction: options.systemInstruction,
-          temperature: options.temperature ?? 0.3,
-          maxOutputTokens: options.maxOutputTokens ?? 1024,
-        },
-      });
+      const timeoutMs = options.timeoutMs ?? DEFAULT_GENERATION_TIMEOUT_MS;
+      const response = await withTimeout(
+        client.models.generateContent({
+          model: GEMINI_GENERATION_MODEL,
+          contents: prompt,
+          config: {
+            systemInstruction: options.systemInstruction,
+            maxOutputTokens: options.maxOutputTokens ?? 1024,
+          },
+        }),
+        timeoutMs,
+        "Gemini text generation"
+      );
 
       const text = response.text;
       if (!text) {
@@ -97,16 +127,20 @@ export class GeminiAIProvider implements AIModelProvider {
   ): Promise<T> {
     try {
       const client = this.getClient();
-      const response = await client.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: prompt,
-        config: {
-          systemInstruction: options.systemInstruction,
-          temperature: options.temperature ?? 0.2,
-          maxOutputTokens: options.maxOutputTokens ?? 2048,
-          responseMimeType: "application/json",
-        },
-      });
+      const timeoutMs = options.timeoutMs ?? DEFAULT_GENERATION_TIMEOUT_MS;
+      const response = await withTimeout(
+        client.models.generateContent({
+          model: GEMINI_GENERATION_MODEL,
+          contents: prompt,
+          config: {
+            systemInstruction: options.systemInstruction,
+            maxOutputTokens: options.maxOutputTokens ?? 2048,
+            responseMimeType: "application/json",
+          },
+        }),
+        timeoutMs,
+        "Gemini structured generation"
+      );
 
       const raw = response.text || "";
       const jsonStr = extractJsonFromText(raw);
@@ -129,8 +163,8 @@ export class GeminiAIProvider implements AIModelProvider {
 }
 
 /**
- * High-fidelity fallback AI provider for development and offline testing.
- * Synthesizes grounded, architectural Tovu responses from retrieved prompt context.
+ * Grounded fallback AI provider for development and offline/missing-key environments.
+ * Synthesizes grounded, architectural Tovu responses strictly from retrieved prompt evidence.
  */
 export class DeterministicTovuFallbackProvider implements AIModelProvider {
   readonly name = "tovu-grounded-fallback";
@@ -143,8 +177,7 @@ export class DeterministicTovuFallbackProvider implements AIModelProvider {
     prompt: string,
     schema: z.ZodType<T>
   ): Promise<T> {
-    // Extract context clues from prompt
-    const hasEvidence = prompt.includes("SOURCE EVIDENCE:");
+    const hasEvidence = prompt.includes("VERIFIED SOURCE EVIDENCE") || prompt.includes("SOURCE EVIDENCE:");
     const queryMatch = prompt.match(/USER QUERY:\s*([^\n]+)/i);
     const userQuery = queryMatch ? queryMatch[1].trim() : "Unknown query";
 
@@ -152,46 +185,47 @@ export class DeterministicTovuFallbackProvider implements AIModelProvider {
     const actions: Array<{ label: string; action: string; target?: string }> = [];
     const references: Array<{ type: string; id: string; title: string; slug?: string; badge?: string }> = [];
 
-    if (hasEvidence) {
-      // Parse evidence snippets included in the prompt
-      const sourceMatches = [...prompt.matchAll(/\[EVIDENCE\s+\d+\]\s+\[(.*?)\]\s+(.*?)\s+\(URL:\s*(.*?)\)/g)];
-      
-      if (sourceMatches.length > 0) {
-        message = `I have examined the system records regarding "${userQuery}". ${sourceMatches.length} primary verified sources substantiate this architecture:\n\n`;
-        
-        for (const sm of sourceMatches.slice(0, 3)) {
-          const type = sm[1].toLowerCase();
-          const title = sm[2];
-          const url = sm[3];
-          const slug = url.split("/").pop()?.replace("#", "") || "";
+    const sourceMatches = hasEvidence
+      ? [...prompt.matchAll(/\[EVIDENCE\s+\d+\]\s+\[(.*?)\]\s+(.*?)\s+\(URL:\s*(.*?)\)/g)]
+      : [];
 
-          message += `• **${title}** (${type.toUpperCase()}): Documented in the primary registry.\n`;
+    if (sourceMatches.length > 0) {
+      message = `I have examined the system records regarding "${userQuery}". ${sourceMatches.length} retrieved sources substantiate this architecture:\n\n`;
 
-          references.push({
-            type: (["project", "article", "lab", "concept"].includes(type) ? type : "project") as any,
-            id: slug || title,
-            title,
-            slug,
-            badge: type.toUpperCase(),
-          });
+      for (const sm of sourceMatches.slice(0, 3)) {
+        const type = sm[1].toLowerCase();
+        const title = sm[2];
+        const url = sm[3];
+        const slug = url.split("/").pop()?.replace("#", "") || "";
 
-          if (type === "project") {
-            actions.push({ label: `Inspect ${title}`, action: "open_project", target: slug });
-          } else if (type === "article") {
-            actions.push({ label: `Read ${title}`, action: "open_article", target: slug });
-          } else {
-            actions.push({ label: `View ${title}`, action: "navigate", target: type });
-          }
+        message += `• **${title}** (${type.toUpperCase()}): Documented in the primary registry.\n`;
+
+        references.push({
+          type: (["project", "article", "lab", "concept"].includes(type) ? type : "project") as any,
+          id: slug || title,
+          title,
+          slug,
+          badge: type.toUpperCase(),
+        });
+
+        if (type === "project") {
+          actions.push({ label: `Inspect ${title}`, action: "open_project", target: slug });
+        } else if (type === "article") {
+          actions.push({ label: `Read ${title}`, action: "open_article", target: slug });
+        } else if (type === "lab") {
+          actions.push({ label: `Explore Lab`, action: "navigate", target: "lab" });
+        } else if (type === "concept") {
+          actions.push({ label: `Explore Knowledge`, action: "navigate", target: "knowledge" });
         }
-
-        message += `\nEvery component operates with deterministic verification and deliberate architectural boundaries.`;
       }
+
+      message += `\nEvery component operates with deterministic verification and deliberate architectural boundaries.`;
     } else {
-      message = `I have searched the architecture index for "${userQuery}". While no direct operational documents matched with high confidence, Victor's primary work spans distributed systems, machine learning engineering, and full-stack software architecture.`;
+      message = `My architectural records do not contain verified documentation matching "${userQuery}". You can explore Tovu's primary operational modules below.`;
       actions.push(
-        { label: "Inspect AI & Systems Work", action: "navigate", target: "work" },
-        { label: "Browse Technical Journal", action: "navigate", target: "journal" },
-        { label: "View Active Lab Experiments", action: "navigate", target: "lab" }
+        { label: "Inspect Work", action: "navigate", target: "work" },
+        { label: "Browse Journal", action: "navigate", target: "journal" },
+        { label: "View Lab", action: "navigate", target: "lab" }
       );
     }
 
@@ -204,16 +238,18 @@ export class DeterministicTovuFallbackProvider implements AIModelProvider {
       references,
       actions,
       intent: "retrieval_grounded",
+      fallbackUsed: true,
     };
 
     return schema.parse(payload);
   }
 }
 
-// Backwards-compatible alias
-export const DeterministicDoomFallbackProvider = DeterministicTovuFallbackProvider;
-
 let activeAIProvider: AIModelProvider | null = null;
+
+export function resetAIProviderCache(): void {
+  activeAIProvider = null;
+}
 
 export function getAIProvider(): AIModelProvider {
   if (activeAIProvider) return activeAIProvider;
@@ -226,7 +262,7 @@ export function getAIProvider(): AIModelProvider {
   if (hasGemini) {
     try {
       activeAIProvider = new GeminiAIProvider(serverEnv.geminiApiKey);
-      logger.info("Initialized Gemini AI Provider (gemini-3.8-flash)");
+      logger.info(`Initialized Gemini AI Provider (${GEMINI_GENERATION_MODEL})`);
       return activeAIProvider;
     } catch (err) {
       logger.warn("Failed to initialize Gemini AI provider, using fallback", {

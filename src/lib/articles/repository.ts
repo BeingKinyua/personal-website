@@ -26,7 +26,41 @@ export class ArticleRepository {
     return await createSupabaseServerClient();
   }
 
-  async findById(id: string): Promise<ArticleRow | null> {
+  private async attachTagsToArticles(
+    client: SupabaseClient<Database>,
+    rows: ArticleRow[]
+  ): Promise<(ArticleRow & { tags?: { id: string; name: string; slug: string }[] })[]> {
+    if (rows.length === 0) return [];
+    const ids = rows.map((r) => r.id);
+    const { data: tagLinks } = await client
+      .from("article_tags")
+      .select("article_id, tag_id")
+      .in("article_id", ids);
+
+    if (!tagLinks || tagLinks.length === 0) {
+      return rows.map((r) => ({ ...r, tags: [] }));
+    }
+
+    const tagIds = Array.from(new Set(tagLinks.map((l) => l.tag_id)));
+    const { data: tagRows } = await client
+      .from("tags")
+      .select("id, name, slug")
+      .in("id", tagIds);
+
+    const tagMap = new Map((tagRows || []).map((t) => [t.id, t]));
+    const byArticle = new Map<string, { id: string; name: string; slug: string }[]>();
+    for (const link of tagLinks) {
+      const tag = tagMap.get(link.tag_id);
+      if (!tag) continue;
+      const list = byArticle.get(link.article_id) || [];
+      list.push(tag);
+      byArticle.set(link.article_id, list);
+    }
+
+    return rows.map((r) => ({ ...r, tags: byArticle.get(r.id) || [] }));
+  }
+
+  async findById(id: string): Promise<(ArticleRow & { tags?: { id: string; name: string; slug: string }[] }) | null> {
     try {
       const client = await this.getClient();
       const { data, error } = await client.from("articles").select("*").eq("id", id).maybeSingle();
@@ -34,14 +68,16 @@ export class ArticleRepository {
       if (error) {
         throw new DatabaseError(`Failed to fetch article by id: ${error.message}`, { id });
       }
-      return data;
+      if (!data) return null;
+      const [enriched] = await this.attachTagsToArticles(client, [data]);
+      return enriched;
     } catch (err) {
       if (err instanceof DatabaseError) throw err;
       throw new DatabaseError("Database failure while querying article by id", { id, error: String(err) });
     }
   }
 
-  async findBySlug(slug: string): Promise<ArticleRow | null> {
+  async findBySlug(slug: string): Promise<(ArticleRow & { tags?: { id: string; name: string; slug: string }[] }) | null> {
     try {
       const client = await this.getClient();
       const { data, error } = await client.from("articles").select("*").eq("slug", slug).maybeSingle();
@@ -49,14 +85,18 @@ export class ArticleRepository {
       if (error) {
         throw new DatabaseError(`Failed to fetch article by slug: ${error.message}`, { slug });
       }
-      return data;
+      if (!data) return null;
+      const [enriched] = await this.attachTagsToArticles(client, [data]);
+      return enriched;
     } catch (err) {
       if (err instanceof DatabaseError) throw err;
       throw new DatabaseError("Database failure while querying article by slug", { slug, error: String(err) });
     }
   }
 
-  async findMany(filter: ArticleFilter = {}): Promise<{ data: ArticleRow[]; total: number }> {
+  async findMany(
+    filter: ArticleFilter = {}
+  ): Promise<{ data: (ArticleRow & { tags?: { id: string; name: string; slug: string }[] })[]; total: number }> {
     try {
       const client = await this.getClient();
       const { page, limit, offset } = parsePagination({ page: filter.page, limit: filter.limit });
@@ -84,8 +124,10 @@ export class ArticleRepository {
         throw new DatabaseError(`Failed to query articles: ${error.message}`);
       }
 
+      const enriched = await this.attachTagsToArticles(client, data || []);
+
       return {
-        data: data || [],
+        data: enriched,
         total: count || 0,
       };
     } catch (err) {

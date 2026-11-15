@@ -17,6 +17,8 @@ import { ValidationError, NotFoundError, ConflictError } from "../shared/errors"
 import { parsePagination, buildPaginationMeta } from "../shared/utils";
 import { revalidateContent, CACHE_TAGS } from "../shared/revalidate";
 import { logger } from "../shared/logger";
+import { ContentIndexer } from "../ai/embeddings/indexer";
+import { scheduleEmbeddingSync } from "../ai/embeddings/sync";
 import type { Concept, ConceptFilter, CreateConceptInput, UpdateConceptInput } from "./types";
 
 export class KnowledgeService {
@@ -101,6 +103,10 @@ export class KnowledgeService {
       paths: ["/knowledge", `/knowledge/${created.slug}`],
     });
 
+    scheduleEmbeddingSync(`concept:create:${created.id}`, () =>
+      new ContentIndexer().indexConceptById(created.id).then(() => undefined)
+    );
+
     return created;
   }
 
@@ -142,6 +148,10 @@ export class KnowledgeService {
       paths: ["/knowledge", `/knowledge/${existing.slug}`, `/knowledge/${updated.slug}`],
     });
 
+    scheduleEmbeddingSync(`concept:update:${updated.id}`, () =>
+      new ContentIndexer().indexConceptById(updated.id).then(() => undefined)
+    );
+
     return updated;
   }
 
@@ -166,6 +176,10 @@ export class KnowledgeService {
       tags: [CACHE_TAGS.KNOWLEDGE, CACHE_TAGS.CONCEPT(existing.slug)],
       paths: ["/knowledge", `/knowledge/${existing.slug}`],
     });
+
+    scheduleEmbeddingSync(`concept:delete:${id}`, () =>
+      new ContentIndexer().removeEntity("concept", id)
+    );
   }
 
   // --- Content-Concept Associations ---
@@ -255,5 +269,11 @@ export class KnowledgeService {
       throw new ValidationError("Concept ID is required.");
     }
     return this.repository.findRelatedConcepts(conceptId);
+  }
+
+  async getKnowledgeGraph(profile: ProfileRecord | null = null) {
+    const canSeeDrafts =
+      Boolean(profile) && (profile!.role === "admin" || profile!.role === "editor");
+    return this.repository.findAllGraph(canSeeDrafts);
   }
 }

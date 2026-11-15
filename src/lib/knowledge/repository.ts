@@ -272,4 +272,64 @@ export class KnowledgeRepository {
       throw new DatabaseError("Database failure fetching related concepts", { conceptId, error: String(err) });
     }
   }
+
+  async findAllGraph(includeDrafts = false): Promise<{
+    concepts: ConceptRow[];
+    relationships: { source_concept_id: string; target_concept_id: string; relationship_type: string }[];
+    contentLinks: { concept_id: string; content_type: string; content_id: string; slug: string }[];
+  }> {
+    try {
+      const client = await this.getClient();
+      const [conceptsRes, relsRes, linksRes, projRes, artRes, labRes] = await Promise.all([
+        client.from("concepts").select("*").order("order_index", { ascending: true }).order("title", { ascending: true }),
+        client.from("concept_relationships").select("source_concept_id, target_concept_id, relationship_type"),
+        client.from("content_concepts").select("concept_id, content_type, content_id"),
+        includeDrafts
+          ? client.from("projects").select("id, slug, status")
+          : client.from("projects").select("id, slug, status").eq("status", "published"),
+        includeDrafts
+          ? client.from("articles").select("id, slug, status")
+          : client.from("articles").select("id, slug, status").eq("status", "published"),
+        includeDrafts
+          ? client.from("labs").select("id, slug, status")
+          : client.from("labs").select("id, slug, status").neq("status", "archived"),
+      ]);
+
+      if (conceptsRes.error) {
+        throw new DatabaseError(`Failed to fetch knowledge concepts: ${conceptsRes.error.message}`);
+      }
+      if (relsRes.error) {
+        throw new DatabaseError(`Failed to fetch concept relationships: ${relsRes.error.message}`);
+      }
+
+      const projectSlugById = new Map((projRes.data || []).map((p) => [p.id, p.slug]));
+      const articleSlugById = new Map((artRes.data || []).map((a) => [a.id, a.slug]));
+      const labSlugById = new Map((labRes.data || []).map((l) => [l.id, l.slug]));
+
+      const contentLinks: { concept_id: string; content_type: string; content_id: string; slug: string }[] = [];
+      for (const link of linksRes.data || []) {
+        let slug: string | undefined;
+        if (link.content_type === "project") slug = projectSlugById.get(link.content_id);
+        else if (link.content_type === "article") slug = articleSlugById.get(link.content_id);
+        else if (link.content_type === "lab") slug = labSlugById.get(link.content_id);
+        if (slug) {
+          contentLinks.push({
+            concept_id: link.concept_id,
+            content_type: link.content_type,
+            content_id: link.content_id,
+            slug,
+          });
+        }
+      }
+
+      return {
+        concepts: conceptsRes.data || [],
+        relationships: relsRes.data || [],
+        contentLinks,
+      };
+    } catch (err) {
+      if (err instanceof DatabaseError) throw err;
+      throw new DatabaseError("Database failure fetching knowledge graph", { error: String(err) });
+    }
+  }
 }

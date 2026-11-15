@@ -1,7 +1,7 @@
 /**
- * VictorOS Phase D — Intelligence Layer Test Harness
+ * Tovu Intelligence Layer Test Harness
  * Verifies Normalization, Deterministic Chunking, Embedding Provider,
- * Hybrid Search Ranking, Intent Classification, Dr. Doom Prompting,
+ * Hybrid Search Ranking, Intent Classification, Tovu Prompting,
  * Schema Validation, and Session Isolation.
  */
 
@@ -19,9 +19,9 @@ import {
   cosineSimilarity,
 } from "../src/lib/ai/embeddings/provider";
 import { rankSearchResults } from "../src/lib/search/ranking";
-import { classifyIntent } from "../src/lib/ai/doom/intent";
-import { assembleDoomPrompt } from "../src/lib/ai/doom/context";
-import { sanitizeDoomResponse, DoomResponseSchema } from "../src/lib/ai/doom/response";
+import { classifyIntent } from "../src/lib/ai/tovu/intent";
+import { assembleTovuPrompt } from "../src/lib/ai/tovu/context";
+import { sanitizeTovuResponse, TovuResponseSchema } from "../src/lib/ai/tovu/response";
 import { ConversationService } from "../src/lib/ai/conversations/service";
 import { checkRateLimit } from "../src/lib/shared/rateLimit";
 import type { SearchResult } from "../src/lib/search/types";
@@ -34,7 +34,7 @@ function assert(condition: boolean, message: string) {
 
 async function runTests() {
   console.log("\n========================================================");
-  console.log("  VICTOROS PHASE D — INTELLIGENCE LAYER TEST SUITE");
+  console.log("  TOVU INTELLIGENCE LAYER TEST SUITE");
   console.log("========================================================\n");
 
   let passed = 0;
@@ -209,8 +209,8 @@ async function runTests() {
     assert(ranked[0].score > ranked[1].score, "First item score must be higher than second");
   });
 
-  // 5. Dr. Doom Intent Classification
-  await test("Dr. Doom Intent Classifier correctly routes queries", () => {
+  // 5. Tovu Intent Classification
+  await test("Tovu Intent Classifier correctly routes queries", () => {
     const navIntent = classifyIntent("take me to the journal module");
     assert(navIntent.intent === "navigation", "Must classify as navigation");
     assert(navIntent.prioritySources.includes("article"), "Must prioritize article");
@@ -245,8 +245,8 @@ async function runTests() {
       },
     ];
 
-    const prompt = assembleDoomPrompt("Tell me about NYAYO", classification, evidence);
-    assert(prompt.includes("=== VICTOROS SYSTEM CONTEXT ==="), "Must have system header");
+    const prompt = assembleTovuPrompt("Tell me about NYAYO", classification, evidence);
+    assert(prompt.includes("=== TOVU SYSTEM CONTEXT ==="), "Must have system header");
     assert(prompt.includes("=== VERIFIED SOURCE EVIDENCE ==="), "Must have evidence section");
     assert(prompt.includes("NYAYO"), "Must include evidence details");
     assert(prompt.includes("/work/nyayo"), "Must include evidence URL");
@@ -254,9 +254,9 @@ async function runTests() {
   });
 
   // 7. Schema Validation & Hallucination Sanitization
-  await test("Doom Response Schema validates structured outputs and sanitizes fallbacks", () => {
+  await test("Tovu Response Schema validates structured outputs and sanitizes fallbacks", () => {
     const validRaw = {
-      message: "DR. DOOM reports: NYAYO is an active, production-tested platform.",
+      message: "NYAYO is an active, production-tested platform.",
       references: [
         { type: "project", id: "nyayo", title: "NYAYO", slug: "nyayo", badge: "AI Platform" },
       ],
@@ -267,14 +267,14 @@ async function runTests() {
       confidence: 0.95,
     };
 
-    const parsed = DoomResponseSchema.parse(validRaw);
+    const parsed = TovuResponseSchema.parse(validRaw);
     assert(parsed.references.length === 1, "Should parse references");
     assert(parsed.actions.length === 1, "Should parse actions");
 
     const invalidRaw = {
       message: "", // Empty message triggers fallback
     };
-    const sanitized = sanitizeDoomResponse(invalidRaw);
+    const sanitized = sanitizeTovuResponse(invalidRaw);
     assert(sanitized.message.length > 0, "Sanitized fallback must provide non-empty message");
     assert(sanitized.actions.length > 0, "Sanitized fallback must provide navigation actions");
   });
@@ -306,8 +306,8 @@ async function runTests() {
     assert(forbiddenCaught, "Foreign session must be strictly rejected with 403 Forbidden");
 
     // Messages can be added and listed
-    await convService.addMessage(conv.id, "user", "Hello Dr. Doom");
-    await convService.addMessage(conv.id, "assistant", "Doom online.");
+    await convService.addMessage(conv.id, "user", "Hello Tovu");
+    await convService.addMessage(conv.id, "assistant", "Tovu online.");
     const msgs = await convService.listMessages(conv.id, 10);
     assert(msgs.length === 2, "Conversation must contain 2 messages");
     assert(msgs[0].role === "user", "First message must be user");

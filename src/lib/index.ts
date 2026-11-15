@@ -1,58 +1,30 @@
 /**
- * VictorOS Backend Foundation Exports
+ * Tovu Browser-Safe Library Exports
+ * Strictly excludes server-only Supabase clients, service-role keys, and server secrets.
+ * Server modules must import from "./server" instead.
  */
 
-// Shared
+// Shared (browser-safe)
 export * from "./shared/constants";
 export * from "./shared/errors";
-export * from "./shared/logger";
 export * from "./shared/utils";
-export * from "./shared/env";
-export * from "./shared/api";
+export { getPublicEnv, isSupabaseConfigured, isDevFixtureModeEnabled } from "./shared/env";
 
-// Supabase
+// Supabase (browser client + types only)
 export type { Database, Json } from "./supabase/types";
-export * from "./supabase/client";
-export * from "./supabase/server";
-export * from "./supabase/admin";
+export { getSupabaseBrowserClient } from "./supabase/client";
 
-// Auth & Authorization
+// Role definitions (pure constants/guards)
 export * from "./auth/roles";
-export * from "./auth/authorization";
-export {
-  getCurrentUser,
-  getCurrentProfile,
-  requireUser,
-  requireAdmin,
-  requireAuthContext,
-  type CurrentAuthContext,
-} from "./auth/session";
 
-// Domain Services & Repositories
+// Domain Types & Zod Schemas (browser-safe)
 export * from "./projects/types";
 export * from "./projects/schemas";
-export * from "./projects/repository";
-export * from "./projects/service";
-
 export * from "./articles/types";
 export * from "./articles/schemas";
-export * from "./articles/repository";
-export * from "./articles/service";
-
 export * from "./labs/types";
 export * from "./labs/schemas";
-export * from "./labs/repository";
-export * from "./labs/service";
-
 export * from "./knowledge/types";
 export * from "./knowledge/schemas";
-export * from "./knowledge/repository";
-export * from "./knowledge/service";
-
 export * from "./media/types";
 export * from "./media/schemas";
-export * from "./media/repository";
-export * from "./media/service";
-
-// Actions
-export * from "./actions/safeAction";

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useScrollLock } from "../../hooks/useScrollLock";
+import { useDialogFocusTrap } from "../../hooks/useDialogFocusTrap";
 import Lenis from "lenis";
 
 interface ImmersiveOverlayProps {
@@ -19,11 +20,14 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
   className = "",
   scrollerRef,
 }) => {
-  // Apply robust body scroll lock and Lenis pausing
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
   useScrollLock({
     lock: isOpen,
     lenisRef,
   });
+
+  useDialogFocusTrap(isOpen, overlayRef, { initialFocusRef: scrollerRef });
 
   // Handle ESC key to close
   useEffect(() => {
@@ -41,16 +45,12 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
     };
   }, [isOpen, onClose]);
 
-  // Auto-focus scroller on open for keyboard scrolling and isolate wheel/touch propagation
+  // Isolate wheel/touch propagation so outer Lenis never intercepts scroll gestures
   useEffect(() => {
     if (!isOpen) return;
 
     const scroller = scrollerRef.current;
     if (scroller) {
-      // Focus container so ArrowDown, PageDown, Space keys scroll immediately
-      scroller.focus({ preventScroll: true });
-
-      // Stop wheel and touch event propagation to window so external Lenis/global listeners never intercept or preventDefault
       const handleScrollGesture = (e: Event) => {
         e.stopPropagation();
       };
@@ -68,12 +68,13 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
   // Subtle background Tovu depth recede effect
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const mainEl = document.getElementById("tovu-main-content") || document.getElementById("victoros-main-content");
-    const navEl = document.getElementById("tovu-floating-nav") || document.getElementById("victoros-floating-nav");
+    const mainEl = document.getElementById("tovu-main-content");
+    const navEl = document.getElementById("os-floating-header");
 
     if (isOpen) {
       if (mainEl) {
-        mainEl.style.transition = "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, filter 0.3s ease";
+        mainEl.style.transition =
+          "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, filter 0.3s ease";
         mainEl.style.transform = "scale(0.985)";
         mainEl.style.opacity = "0.75";
         mainEl.style.filter = "blur(1.5px)";
@@ -114,16 +115,13 @@ export const ImmersiveOverlay: React.FC<ImmersiveOverlayProps> = ({
 
   return (
     <div
+      ref={overlayRef}
       id="tovu-immersive-overlay"
       data-lenis-prevent="true"
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-[100] flex flex-col bg-black/90 backdrop-blur-2xl animate-fadeIn text-zinc-100 overflow-hidden"
     >
-      {/* 
-        Independent Reader Scroll Container
-        overscroll-behavior: contain prevents any wheel or touch momentum from chaining to Tovu beneath
-      */}
       <div
         ref={scrollerRef}
         id="reader-scroll-viewport"

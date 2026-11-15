@@ -21,7 +21,9 @@ export class MediaService {
     this.repository = repository || new MediaRepository();
   }
 
-  async listMedia(rawFilter: unknown = {}) {
+  async listMedia(rawFilter: unknown = {}, profile: ProfileRecord | null = null) {
+    assertCanManageMedia(profile);
+
     const parseResult = mediaFilterSchema.safeParse(rawFilter);
     if (!parseResult.success) {
       throw new ValidationError("Invalid media filter parameters", {
@@ -39,7 +41,9 @@ export class MediaService {
     };
   }
 
-  async getMediaById(id: string): Promise<MediaAsset> {
+  async getMediaById(id: string, profile: ProfileRecord | null = null): Promise<MediaAsset> {
+    assertCanManageMedia(profile);
+
     if (!id) {
       throw new ValidationError("Media asset id is required.");
     }

@@ -1,3 +1,4 @@
+import { apiRequest, shouldFallbackToDevFixture } from "./apiClient";
 import { PROJECTS } from "../data/projects";
 import { ARTICLES } from "../data/articles";
 import { EXPERIMENTS } from "../data/experiments";
@@ -5,81 +6,77 @@ import { KNOWLEDGE_NODES } from "../data/knowledge";
 
 export interface SearchResultItem {
   id: string;
-  module: "WORK" | "JOURNAL" | "LAB" | "KNOWLEDGE" | "NAVIGATION" | "TOVU" | "DOOM";
+  module: "WORK" | "JOURNAL" | "LAB" | "KNOWLEDGE" | "NAVIGATION" | "TOVU";
   title: string;
   subtitle: string;
   action: {
-    type: "navigate" | "open_project" | "open_article" | "ask_tovu" | "ask_doom";
+    type: "navigate" | "open_project" | "open_article" | "ask_tovu";
     target: string;
   };
 }
 
-export function searchTovu(query: string): SearchResultItem[] {
+interface BackendSearchResult {
+  sourceType: "project" | "article" | "lab" | "concept";
+  sourceId: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  score: number;
+  matchType: "lexical" | "semantic" | "hybrid";
+  url: string;
+}
+
+/**
+ * Curated navigation shortcuts shown before the visitor types a query.
+ */
+export function getCommandSuggestions(): SearchResultItem[] {
+  return [
+    {
+      id: "nav-work",
+      module: "NAVIGATION",
+      title: "Work Module",
+      subtitle: "Engineered systems showcase & case studies",
+      action: { type: "navigate", target: "work" },
+    },
+    {
+      id: "nav-journal",
+      module: "NAVIGATION",
+      title: "Journal Module",
+      subtitle: "Technical essays & architectural notes",
+      action: { type: "navigate", target: "journal" },
+    },
+    {
+      id: "nav-lab",
+      module: "NAVIGATION",
+      title: "Lab Module",
+      subtitle: "Active engineering experiments & benchmarks",
+      action: { type: "navigate", target: "lab" },
+    },
+    {
+      id: "nav-knowledge",
+      module: "NAVIGATION",
+      title: "Knowledge Lattice",
+      subtitle: "Explore interconnected engineering concepts",
+      action: { type: "navigate", target: "knowledge" },
+    },
+    {
+      id: "tovu-ai",
+      module: "TOVU",
+      title: "Ask Tovu: AI Systems Inquiry",
+      subtitle: "Query the system intelligence layer",
+      action: { type: "ask_tovu", target: "Show me the AI projects" },
+    },
+  ];
+}
+
+function searchDevFixtures(query: string): SearchResultItem[] {
   const q = query.toLowerCase().trim();
   const results: SearchResultItem[] = [];
 
-  if (!q) {
-    // Default quick suggestions
-    return [
-      {
-        id: "nav-work",
-        module: "NAVIGATION",
-        title: "Work Module",
-        subtitle: "Cinematic systems showcase & case studies",
-        action: { type: "navigate", target: "work" },
-      },
-      {
-        id: "proj-nyayo",
-        module: "WORK",
-        title: "NYAYO",
-        subtitle: "A discipleship platform designed around knowing Christ",
-        action: { type: "open_project", target: "nyayo" },
-      },
-      {
-        id: "proj-football",
-        module: "WORK",
-        title: "Football Intelligence",
-        subtitle: "Computer vision analysis & recruit intelligence",
-        action: { type: "open_project", target: "football-intelligence" },
-      },
-      {
-        id: "art-ai-eng",
-        module: "JOURNAL",
-        title: "AI Engineering: Systems That Actually Solve Problems",
-        subtitle: "Evaluation harnesses and deterministic boundaries",
-        action: { type: "open_article", target: "ai-engineering-production" },
-      },
-      {
-        id: "exp-07",
-        module: "LAB",
-        title: "EXPERIMENT 07 — Football Intelligence",
-        subtitle: "Monocular pitch reconstruction & kinematics",
-        action: { type: "navigate", target: "lab" },
-      },
-      {
-        id: "nav-knowledge",
-        module: "KNOWLEDGE",
-        title: "Knowledge Lattice",
-        subtitle: "Explore 16 interconnected technical concepts",
-        action: { type: "navigate", target: "knowledge" },
-      },
-      {
-        id: "tovu-ai",
-        module: "TOVU",
-        title: "Ask Tovu: AI Systems Inquiry",
-        subtitle: "Query the system intelligence layer",
-        action: { type: "ask_tovu", target: "Show me the AI projects" },
-      },
-    ];
-  }
-
-  // Search Projects
   for (const p of PROJECTS) {
     if (
       p.title.toLowerCase().includes(q) ||
       p.subtitle.toLowerCase().includes(q) ||
-      p.system.toLowerCase().includes(q) ||
-      p.details.toLowerCase().includes(q) ||
       p.technologies.some((t) => t.toLowerCase().includes(q))
     ) {
       results.push({
@@ -92,7 +89,6 @@ export function searchTovu(query: string): SearchResultItem[] {
     }
   }
 
-  // Search Articles
   for (const a of ARTICLES) {
     if (
       a.title.toLowerCase().includes(q) ||
@@ -109,12 +105,10 @@ export function searchTovu(query: string): SearchResultItem[] {
     }
   }
 
-  // Search Experiments
   for (const e of EXPERIMENTS) {
     if (
       e.title.toLowerCase().includes(q) ||
       e.hypothesis.toLowerCase().includes(q) ||
-      e.currentState.toLowerCase().includes(q) ||
       e.tags.some((t) => t.toLowerCase().includes(q))
     ) {
       results.push({
@@ -127,7 +121,6 @@ export function searchTovu(query: string): SearchResultItem[] {
     }
   }
 
-  // Search Knowledge Lattice
   for (const k of KNOWLEDGE_NODES) {
     if (
       k.label.toLowerCase().includes(q) ||
@@ -144,29 +137,6 @@ export function searchTovu(query: string): SearchResultItem[] {
     }
   }
 
-  // Search Core Navigation
-  const navTargets = [
-    { title: "Work Module", subtitle: "Engineering showcase & case studies", target: "work" },
-    { title: "Journal Module", subtitle: "Essays & architectural writings", target: "journal" },
-    { title: "Lab Module", subtitle: "Active experiments & prototypes", target: "lab" },
-    { title: "Knowledge Module", subtitle: "Interconnected conceptual lattice", target: "knowledge" },
-    { title: "About Section", subtitle: "Bio, creed, timeline & philosophy", target: "about" },
-    { title: "Contact Section", subtitle: "Direct channels & collaboration", target: "contact" },
-  ];
-
-  for (const nav of navTargets) {
-    if (nav.title.toLowerCase().includes(q) || nav.subtitle.toLowerCase().includes(q)) {
-      results.push({
-        id: `nav-${nav.target}`,
-        module: "NAVIGATION",
-        title: nav.title,
-        subtitle: nav.subtitle,
-        action: { type: "navigate", target: nav.target },
-      });
-    }
-  }
-
-  // Always offer asking Tovu if query exists
   results.push({
     id: `tovu-query-${q}`,
     module: "TOVU",
@@ -178,67 +148,76 @@ export function searchTovu(query: string): SearchResultItem[] {
   return results;
 }
 
-// Backwards-compatible alias
-export const searchVictorOS = searchTovu;
-
 /**
- * Queries the real Tovu backend hybrid search API (/api/v1/search)
- * with graceful fallback to client-side search.
+ * Canonical hybrid search via GET /api/v1/search.
+ * Supports request cancellation via AbortSignal and enforces explicit error reporting
+ * in production (dev fixtures activate only on non-prod 503 SUPABASE_NOT_CONFIGURED).
  */
-export async function searchTovuHybrid(query: string): Promise<SearchResultItem[]> {
-  const localResults = searchTovu(query);
-  if (!query.trim()) return localResults;
-
-  try {
-    const res = await fetch(`/api/v1/search?q=${encodeURIComponent(query.trim())}&limit=12`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-        const backendItems: SearchResultItem[] = json.data.map((item: any) => {
-          let moduleType: "WORK" | "JOURNAL" | "LAB" | "KNOWLEDGE" = "WORK";
-          let actionType: "navigate" | "open_project" | "open_article" = "open_project";
-
-          if (item.sourceType === "article") {
-            moduleType = "JOURNAL";
-            actionType = "open_article";
-          } else if (item.sourceType === "lab") {
-            moduleType = "LAB";
-            actionType = "navigate";
-          } else if (item.sourceType === "concept") {
-            moduleType = "KNOWLEDGE";
-            actionType = "navigate";
-          }
-
-          return {
-            id: `backend-${item.sourceType}-${item.sourceId}`,
-            module: moduleType,
-            title: item.title,
-            subtitle: item.excerpt || `${item.matchType.toUpperCase()} match (${Math.round(item.score * 100)}%)`,
-            action: {
-              type: actionType,
-              target: item.slug || item.sourceId,
-            },
-          };
-        });
-
-        // Always include Tovu delegation action
-        backendItems.push({
-          id: `tovu-query-${query}`,
-          module: "TOVU",
-          title: `Ask Tovu: "${query}"`,
-          subtitle: "Delegate semantic query to Tovu intelligence",
-          action: { type: "ask_tovu", target: query },
-        });
-
-        return backendItems;
-      }
-    }
-  } catch {
-    // Fall back to local search
+export async function searchTovuHybrid(
+  query: string,
+  options: { signal?: AbortSignal; types?: string[] } = {}
+): Promise<SearchResultItem[]> {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    return getCommandSuggestions();
   }
 
-  return localResults;
-}
+  const params = new URLSearchParams({
+    q: trimmed,
+    limit: "12",
+  });
+  if (options.types && options.types.length > 0) {
+    params.set("types", options.types.join(","));
+  }
 
-// Backwards-compatible alias
-export const searchVictorOSHybrid = searchTovuHybrid;
+  try {
+    const items = await apiRequest<BackendSearchResult[]>(`/search?${params.toString()}`, {
+      signal: options.signal,
+    });
+
+    const mapped: SearchResultItem[] = items.map((item) => {
+      let moduleType: SearchResultItem["module"] = "WORK";
+      let actionType: SearchResultItem["action"]["type"] = "open_project";
+
+      if (item.sourceType === "article") {
+        moduleType = "JOURNAL";
+        actionType = "open_article";
+      } else if (item.sourceType === "lab") {
+        moduleType = "LAB";
+        actionType = "navigate";
+      } else if (item.sourceType === "concept") {
+        moduleType = "KNOWLEDGE";
+        actionType = "navigate";
+      }
+
+      return {
+        id: `backend-${item.sourceType}-${item.sourceId}`,
+        module: moduleType,
+        title: item.title,
+        subtitle: item.excerpt || `${item.matchType.toUpperCase()} match`,
+        action: {
+          type: actionType,
+          target: item.slug || item.sourceId,
+        },
+      };
+    });
+
+    mapped.push({
+      id: `tovu-query-${trimmed}`,
+      module: "TOVU",
+      title: `Ask Tovu: "${trimmed}"`,
+      subtitle: "Delegate semantic query to Tovu intelligence",
+      action: { type: "ask_tovu", target: trimmed },
+    });
+
+    return mapped;
+  } catch (err) {
+    if ((err as { name?: string })?.name === "AbortError") {
+      throw err;
+    }
+    if (shouldFallbackToDevFixture(err)) {
+      return searchDevFixtures(trimmed);
+    }
+    throw err;
+  }
+}

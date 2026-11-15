@@ -17,20 +17,24 @@ const service = new MediaService();
 export const listMediaAction = createSafeAction(
   {
     schema: mediaFilterSchema,
+    requireAuth: true,
+    requireRole: ROLES.EDITOR,
     actionName: "media:list",
   },
-  async (input) => {
-    return service.listMedia(input);
+  async (input, { profile }) => {
+    return service.listMedia(input, profile);
   }
 );
 
 export const getMediaByIdAction = createSafeAction(
   {
     schema: z.object({ id: z.string().uuid() }),
+    requireAuth: true,
+    requireRole: ROLES.EDITOR,
     actionName: "media:getById",
   },
-  async ({ id }) => {
-    return service.getMediaById(id);
+  async ({ id }, { profile }) => {
+    return service.getMediaById(id, profile);
   }
 );
 

@@ -10,13 +10,16 @@ import { isSupabaseConfigured } from "../../shared/env";
 import { ForbiddenError, NotFoundError } from "../../shared/errors";
 import { logger } from "../../shared/logger";
 
-export interface ConversationRecord {
+export interface PublicConversationRecord {
   id: string;
-  sessionId: string;
   userId: string | null;
   title: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ConversationRecord extends PublicConversationRecord {
+  sessionId: string;
 }
 
 export interface MessageRecord {
@@ -26,6 +29,16 @@ export interface MessageRecord {
   content: string;
   metadata: Record<string, unknown> | null;
   createdAt: string;
+}
+
+export function toPublicConversation(conv: ConversationRecord): PublicConversationRecord {
+  return {
+    id: conv.id,
+    userId: conv.userId,
+    title: conv.title,
+    createdAt: conv.createdAt,
+    updatedAt: conv.updatedAt,
+  };
 }
 
 export class ConversationService {
@@ -150,9 +163,9 @@ export class ConversationService {
       throw new NotFoundError("Conversation", id);
     }
 
-    // Strict Security Isolation: ensure visitor cannot read another's conversation
-    const isSessionOwner = conv.sessionId === sessionId;
-    const isUserOwner = Boolean(userId && conv.userId === userId);
+    // Strict Security Isolation: ensure visitor cannot read or mutate another's conversation
+    const isSessionOwner = Boolean(sessionId && conv.sessionId === sessionId);
+    const isUserOwner = Boolean(userId && conv.userId && conv.userId === userId);
 
     if (!isSessionOwner && !isUserOwner) {
       throw new ForbiddenError("Access denied to conversation: session mismatch");

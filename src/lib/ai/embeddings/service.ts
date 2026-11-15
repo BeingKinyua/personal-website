@@ -1,33 +1,55 @@
 /**
- * VictorOS Intelligence Layer — Embeddings Service
+ * Tovu Intelligence Layer — Embeddings Service
  * Orchestrates content normalization, deterministic chunking, vector generation,
- * persistence in Supabase pgvector, and high-performance hybrid memory caching.
+ * persistence in Supabase pgvector, stateless cold-start hydration, and memory caching.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../supabase/types";
 import { createSupabaseAdminClient } from "../../supabase/admin";
+import { createSupabaseServerClient } from "../../supabase/server";
+import { isSupabaseConfigured } from "../../shared/env";
 import {
   type NormalizedDocument,
+  type NormalizedSourceType,
   type ContentChunk,
   type EmbeddingProvider,
 } from "./types";
 import { chunkDocument } from "./chunker";
 import { getEmbeddingProvider, cosineSimilarity } from "./provider";
 import { logger } from "../../shared/logger";
-import { AppError } from "../../shared/errors";
 
 export interface VectorSearchResult {
   chunk: ContentChunk;
   similarity: number;
 }
 
+interface SourceMeta {
+  title: string;
+  slug: string;
+  status: "published" | "draft" | "archived";
+  url: string;
+}
+
+function buildSourceUrl(sourceType: string, slug: string): string {
+  switch (sourceType) {
+    case "project":
+      return `/work/${slug}`;
+    case "article":
+      return `/journal/${slug}`;
+    case "lab":
+      return `/lab#${slug}`;
+    case "concept":
+      return `/knowledge/${slug}`;
+    default:
+      return `/${sourceType}/${slug}`;
+  }
+}
+
 export class EmbeddingService {
   private provider: EmbeddingProvider;
   private clientPromise?: Promise<SupabaseClient<Database>> | SupabaseClient<Database>;
-  
-  // High-performance in-memory vector cache for instant zero-latency retrieval
-  // and offline resilience
+
   private static memoryChunkIndex = new Map<string, ContentChunk>();
   private static memoryVectorIndex = new Map<string, number[]>();
 
@@ -42,13 +64,29 @@ export class EmbeddingService {
   }
 
   private async getAdminClient(): Promise<SupabaseClient<Database> | null> {
+    if (this.clientPromise) {
+      return await this.clientPromise;
+    }
+    if (!isSupabaseConfigured(true)) {
+      return null;
+    }
     try {
-      if (this.clientPromise) {
-        return await this.clientPromise;
-      }
       return await createSupabaseAdminClient();
     } catch {
-      // Admin client might be unavailable if SUPABASE_SERVICE_ROLE_KEY is missing
+      return null;
+    }
+  }
+
+  private async getReadClient(): Promise<SupabaseClient<Database> | null> {
+    if (this.clientPromise) {
+      return await this.clientPromise;
+    }
+    if (!isSupabaseConfigured(false)) {
+      return null;
+    }
+    try {
+      return await createSupabaseServerClient();
+    } catch {
       return null;
     }
   }
@@ -65,13 +103,11 @@ export class EmbeddingService {
     const textsToEmbed: string[] = [];
 
     for (const chunk of chunks) {
-      // Check if chunk exists in memory with identical hash
       const existing = EmbeddingService.memoryChunkIndex.get(chunk.id);
       const existingVec = EmbeddingService.memoryVectorIndex.get(chunk.id);
 
       if (!existing || existing.contentHash !== chunk.contentHash || !existingVec) {
         chunksToEmbed.push(chunk);
-        // Include source context in embedding input for enhanced semantic grounding
         const enrichedText = `[${chunk.sourceType.toUpperCase()}] ${chunk.title}\nSection: ${chunk.sectionTitle || "General"}\n\n${chunk.content}`;
         textsToEmbed.push(enrichedText);
       }
@@ -90,16 +126,12 @@ export class EmbeddingService {
       for (let i = 0; i < chunksToEmbed.length; i++) {
         const chunk = chunksToEmbed[i];
         const vector = vectors[i];
-
-        // Store in memory index
         EmbeddingService.memoryChunkIndex.set(chunk.id, chunk);
         EmbeddingService.memoryVectorIndex.set(chunk.id, vector);
       }
 
-      // Persist to Supabase if database connection is available
       await this.persistChunksToDatabase(chunksToEmbed, vectors);
     } else {
-      // Even if already embedded, ensure all chunks are in memory
       for (const chunk of chunks) {
         EmbeddingService.memoryChunkIndex.set(chunk.id, chunk);
       }
@@ -109,7 +141,7 @@ export class EmbeddingService {
   }
 
   /**
-   * Persists chunk records and vector embeddings into Supabase tables
+   * Persists chunk records and vector embeddings into Supabase tables.
    */
   private async persistChunksToDatabase(
     chunks: ContentChunk[],
@@ -123,7 +155,6 @@ export class EmbeddingService {
         const chunk = chunks[i];
         const vector = vectors[i];
 
-        // Upsert chunk into content_chunks table
         const { error: chunkErr } = await client.from("content_chunks").upsert(
           {
             id: chunk.id,
@@ -137,15 +168,14 @@ export class EmbeddingService {
         );
 
         if (chunkErr) {
-          logger.warn("Could not persist chunk to database (continuing with memory cache)", {
+          logger.warn("Could not persist chunk to database", {
             chunkId: chunk.id,
             error: chunkErr.message,
           });
           continue;
         }
 
-        // Upsert vector into embeddings table
-        await client.from("embeddings").upsert(
+        const { error: embErr } = await client.from("embeddings").upsert(
           {
             chunk_id: chunk.id,
             embedding: vector,
@@ -153,6 +183,13 @@ export class EmbeddingService {
           },
           { onConflict: "chunk_id" }
         );
+
+        if (embErr) {
+          logger.warn("Could not persist embedding vector to database", {
+            chunkId: chunk.id,
+            error: embErr.message,
+          });
+        }
       }
     } catch (err) {
       logger.warn("Database vector persistence skipped", { error: String(err) });
@@ -160,11 +197,38 @@ export class EmbeddingService {
   }
 
   /**
-   * Updates embeddings for a document, purging stale chunks no longer present.
+   * Updates embeddings for a document, upserting current chunks and purging stale higher indices.
    */
   async updateDocumentEmbeddings(doc: NormalizedDocument): Promise<ContentChunk[]> {
-    await this.deleteDocumentEmbeddings(doc.sourceType, doc.sourceId);
-    return await this.embedDocument(doc);
+    const chunks = await this.embedDocument(doc);
+    const validIds = new Set(chunks.map((c) => c.id));
+
+    for (const [chunkId, existing] of EmbeddingService.memoryChunkIndex.entries()) {
+      if (
+        existing.sourceType === doc.sourceType &&
+        existing.sourceId === doc.sourceId &&
+        !validIds.has(chunkId)
+      ) {
+        EmbeddingService.memoryChunkIndex.delete(chunkId);
+        EmbeddingService.memoryVectorIndex.delete(chunkId);
+      }
+    }
+
+    try {
+      const client = await this.getAdminClient();
+      if (client) {
+        await client
+          .from("content_chunks")
+          .delete()
+          .eq("source_type", doc.sourceType)
+          .eq("source_id", doc.sourceId)
+          .gte("chunk_index", chunks.length);
+      }
+    } catch (err) {
+      logger.warn("Failed to purge trailing document chunks", { error: String(err) });
+    }
+
+    return chunks;
   }
 
   /**
@@ -174,7 +238,6 @@ export class EmbeddingService {
     sourceType: string,
     sourceId: string
   ): Promise<void> {
-    // 1. Purge from memory index
     for (const [chunkId, chunk] of EmbeddingService.memoryChunkIndex.entries()) {
       if (chunk.sourceType === sourceType && chunk.sourceId === sourceId) {
         EmbeddingService.memoryChunkIndex.delete(chunkId);
@@ -182,7 +245,6 @@ export class EmbeddingService {
       }
     }
 
-    // 2. Purge from Supabase if available
     try {
       const client = await this.getAdminClient();
       if (client) {
@@ -198,7 +260,92 @@ export class EmbeddingService {
   }
 
   /**
-   * Performs semantic k-Nearest Neighbors search using cosine similarity
+   * Batch-fetches source metadata for RPC rows when memory cache is cold (stateless restarts).
+   */
+  private async hydrateSourceMetadata(
+    client: SupabaseClient<Database>,
+    rows: Array<{ source_type: string; source_id: string }>
+  ): Promise<Map<string, SourceMeta>> {
+    const metaMap = new Map<string, SourceMeta>();
+    const idsByType: Record<string, Set<string>> = {
+      project: new Set(),
+      article: new Set(),
+      lab: new Set(),
+      concept: new Set(),
+    };
+
+    for (const row of rows) {
+      if (idsByType[row.source_type]) {
+        idsByType[row.source_type].add(row.source_id);
+      }
+    }
+
+    const [projRes, artRes, labRes, conRes] = await Promise.all([
+      idsByType.project.size > 0
+        ? client
+            .from("projects")
+            .select("id, title, slug, status")
+            .in("id", Array.from(idsByType.project))
+        : Promise.resolve({ data: [] as any[], error: null }),
+      idsByType.article.size > 0
+        ? client
+            .from("articles")
+            .select("id, title, slug, status")
+            .in("id", Array.from(idsByType.article))
+        : Promise.resolve({ data: [] as any[], error: null }),
+      idsByType.lab.size > 0
+        ? client
+            .from("labs")
+            .select("id, title, slug, status")
+            .in("id", Array.from(idsByType.lab))
+        : Promise.resolve({ data: [] as any[], error: null }),
+      idsByType.concept.size > 0
+        ? client
+            .from("concepts")
+            .select("id, title, slug")
+            .in("id", Array.from(idsByType.concept))
+        : Promise.resolve({ data: [] as any[], error: null }),
+    ]);
+
+    for (const p of projRes.data || []) {
+      metaMap.set(`project:${p.id}`, {
+        title: p.title,
+        slug: p.slug,
+        status: p.status,
+        url: buildSourceUrl("project", p.slug),
+      });
+    }
+    for (const a of artRes.data || []) {
+      metaMap.set(`article:${a.id}`, {
+        title: a.title,
+        slug: a.slug,
+        status: a.status,
+        url: buildSourceUrl("article", a.slug),
+      });
+    }
+    for (const l of labRes.data || []) {
+      metaMap.set(`lab:${l.id}`, {
+        title: l.title,
+        slug: l.slug,
+        status: l.status === "archived" ? "archived" : "published",
+        url: buildSourceUrl("lab", l.slug),
+      });
+    }
+    for (const c of conRes.data || []) {
+      metaMap.set(`concept:${c.id}`, {
+        title: c.title,
+        slug: c.slug,
+        status: "published",
+        url: buildSourceUrl("concept", c.slug),
+      });
+    }
+
+    return metaMap;
+  }
+
+  /**
+   * Performs semantic k-Nearest Neighbors search using cosine similarity.
+   * Works seamlessly in stateless/cold environments by hydrating metadata from DB RPC rows.
    */
   async searchSimilar(
     queryVector: number[],
@@ -214,9 +361,8 @@ export class EmbeddingService {
     const allowedTypes = options.sourceTypes;
     const includeDrafts = options.includeDrafts ?? false;
 
-    // Try Supabase pgvector RPC first if available
     try {
-      const client = await this.getAdminClient();
+      const client = await this.getReadClient();
       if (client) {
         const { data, error } = await (client as any).rpc("match_chunks", {
           query_embedding: queryVector,
@@ -226,25 +372,76 @@ export class EmbeddingService {
         });
 
         if (!error && data && Array.isArray(data) && data.length > 0) {
+          const rowsNeedingMeta = (data as any[]).filter(
+            (r) => !r.title || !r.slug
+          );
+          const metaMap =
+            rowsNeedingMeta.length > 0
+              ? await this.hydrateSourceMetadata(client, rowsNeedingMeta)
+              : new Map<string, SourceMeta>();
+
           const results: VectorSearchResult[] = [];
           for (const row of data as any[]) {
-            const memoryChunk = EmbeddingService.memoryChunkIndex.get(row.chunk_id);
-            if (memoryChunk) {
-              if (!includeDrafts && memoryChunk.status !== "published") continue;
-              results.push({
-                chunk: memoryChunk,
-                similarity: row.similarity,
-              });
+            const cached = EmbeddingService.memoryChunkIndex.get(row.chunk_id);
+            const hydratedMeta = metaMap.get(`${row.source_type}:${row.source_id}`);
+
+            const status: "published" | "draft" | "archived" =
+              row.status ||
+              hydratedMeta?.status ||
+              cached?.status ||
+              "published";
+
+            if (!includeDrafts && status !== "published") {
+              continue;
             }
+
+            const slug = row.slug || hydratedMeta?.slug || cached?.slug || row.source_id;
+            const title = row.title || hydratedMeta?.title || cached?.title || slug;
+            const url =
+              row.url ||
+              hydratedMeta?.url ||
+              cached?.url ||
+              buildSourceUrl(row.source_type, slug);
+
+            const chunk: ContentChunk = cached
+              ? {
+                  ...cached,
+                  title,
+                  slug,
+                  url,
+                  status,
+                }
+              : {
+                  id: row.chunk_id,
+                  sourceType: row.source_type as NormalizedSourceType,
+                  sourceId: row.source_id,
+                  title,
+                  slug,
+                  chunkIndex: row.chunk_index ?? 0,
+                  content: row.content,
+                  tokenCount: row.token_count ?? 0,
+                  contentHash: "",
+                  url,
+                  status,
+                };
+
+            results.push({
+              chunk,
+              similarity: row.similarity,
+            });
           }
-          if (results.length > 0) return results;
+          if (results.length > 0) {
+            return results.slice(0, limit);
+          }
         }
       }
-    } catch {
-      // Fall through to memory vector index
+    } catch (err) {
+      logger.warn("Database vector search unavailable, falling back to memory index", {
+        error: String(err),
+      });
     }
 
-    // High-performance fallback: scan in-memory index
+    // In-memory vector index fallback (primarily for isolated tests)
     const candidates: VectorSearchResult[] = [];
 
     for (const [chunkId, chunkVec] of EmbeddingService.memoryVectorIndex.entries()) {
@@ -264,9 +461,11 @@ export class EmbeddingService {
     return candidates.slice(0, limit);
   }
 
-  /**
-   * In-memory index status helper
-   */
+  static clearMemoryCache(): void {
+    EmbeddingService.memoryChunkIndex.clear();
+    EmbeddingService.memoryVectorIndex.clear();
+  }
+
   static getIndexStats(): { chunkCount: number; vectorCount: number } {
     return {
       chunkCount: EmbeddingService.memoryChunkIndex.size,

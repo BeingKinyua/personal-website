@@ -7,17 +7,15 @@ import { DigitalRainTheme } from "./hero/digital-rain-config";
 interface SystemOverviewProps {
   onNavigate: (sectionId: string) => void;
   onOpenTovu?: () => void;
-  onOpenDoom?: () => void;
   theme?: DigitalRainTheme;
 }
 
 export const SystemOverview: React.FC<SystemOverviewProps> = ({
   onNavigate,
   onOpenTovu,
-  onOpenDoom,
   theme,
 }) => {
-  const handleOpenTovu = onOpenTovu || onOpenDoom || (() => {});
+  const handleOpenTovu = onOpenTovu || (() => {});
   const [selectedCurrently, setSelectedCurrently] = useState<CurrentlyItem | null>(null);
 
   return (

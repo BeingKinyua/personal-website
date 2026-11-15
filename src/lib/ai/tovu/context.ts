@@ -113,6 +113,3 @@ export function assembleTovuPrompt(
 
   return parts.join("\n");
 }
-
-// Backwards-compatible alias
-export const assembleDoomPrompt = assembleTovuPrompt;
