@@ -63,63 +63,9 @@ export class ConversationService {
       throw new ForbiddenError("Access denied to conversation");
     }
 
-    if (!conv) {
-      throw new NotFoundError("Conversation", id);
-    }
-
-    // Strict Security Isolation: ensure visitor cannot read or mutate another's conversation
-    const isSessionOwner = Boolean(sessionId && conv.sessionId === sessionId);
-    const isUserOwner = Boolean(userId && conv.userId && conv.userId === userId);
-
-    if (!isSessionOwner && !isUserOwner) {
-      throw new ForbiddenError("Access denied to conversation: session mismatch");
-    }
-
-    return conv;
-  }
-
-  /**
-   * Appends a message to an existing conversation
-   */
-  async addMessage(
-    conversationId: string,
-    role: "user" | "assistant" | "system",
-    content: string,
-    metadata?: Record<string, unknown>
-  ): Promise<MessageRecord> {
-    const id = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const now = new Date().toISOString();
-
-    const record: MessageRecord = {
-      id,
-      conversationId,
-      role,
-      content,
-      metadata: metadata || null,
-      createdAt: now,
-    };
-
-    try {
-      const client = await this.getClient();
-      if (client) {
-        await client.from("ai_messages").insert({
-          id: record.id,
-          conversation_id: record.conversationId,
-          role: record.role,
-          content: record.content,
-          metadata: (record.metadata as any) || {},
-        });
-      }
-    } catch {
-      // Fall through
-    }
-
-    const list = ConversationService.memoryMessages.get(conversationId) || [];
-    list.push(record);
-    ConversationService.memoryMessages.set(conversationId, list);
-
     return record;
   }
+
   async addMessage(conversationId: string, role: "user" | "assistant" | "system",
     content: string, metadata?: Record<string, unknown>, sessionId?: string, userId?: string): Promise<MessageRecord> {
     if (!sessionId) throw new ForbiddenError("Verified visitor session required");

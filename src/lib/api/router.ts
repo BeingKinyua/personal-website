@@ -49,11 +49,9 @@ function buildScopedServices(client?: SupabaseClient<Database> | null) {
 }
 
 function getClientIp(req: Request): string {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.trim()) {
-    return forwarded.split(",")[0].trim();
-  }
-  return req.socket?.remoteAddress || "unknown";
+  // Express derives req.ip from the socket unless a trusted proxy is configured.
+  // Never trust a caller-supplied X-Forwarded-For header directly.
+  return req.ip || req.socket.remoteAddress || "unknown";
 }
 
 export function createBackendRouter(): Router {
@@ -792,7 +790,7 @@ export function createBackendRouter(): Router {
         sessionId,
         user?.id
       );
-      const messages = await conversationService.listMessages(req.params.id, 20);
+      const messages = await conversationService.listMessages(req.params.id, 20, sessionId, user?.id);
 
       return {
         conversation: toPublicConversation(conv),

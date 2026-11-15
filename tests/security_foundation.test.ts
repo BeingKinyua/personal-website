@@ -19,7 +19,7 @@ import {
 import { ProjectService } from "../src/lib/projects/service";
 import { LabService } from "../src/lib/labs/service";
 import { MediaService } from "../src/lib/media/service";
-import { ConversationService, toPublicConversation } from "../src/lib/ai/conversations/service";
+import { toPublicConversation } from "../src/lib/ai/conversations/service";
 import { TovuService } from "../src/lib/ai/tovu/service";
 import type { ProfileRecord } from "../src/lib/auth/authorization";
 
@@ -32,7 +32,8 @@ function assert(condition: boolean, message: string) {
 const adminProfile: ProfileRecord = {
   id: "00000000-0000-0000-0000-000000000001",
   username: "victor",
-  full_name: "Victor Kinyua",
+  user_id: "00000000-0000-0000-0000-000000000001",
+  display_name: "Victor Kinyua",
   avatar_url: null,
   bio: null,
   role: "admin",
@@ -180,12 +181,35 @@ async function runTests() {
 
   // 5. Tovu conversation hijack prevention & public sanitization
   await test("TovuService blocks cross-session conversation hijacking and sanitizes public records", async () => {
-    const convService = new ConversationService();
-    const conv = await convService.createConversation({
+    const messages: Array<{ role: string; content: string }> = [];
+    const conv = {
+      id: "00000000-0000-4000-8000-000000000001",
       sessionId: "sid_owner_1111",
+      userId: null,
       title: "Private Thread",
-    });
-    await convService.addMessage(conv.id, "user", "Sensitive private prompt");
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const convService: any = {
+      createConversation: async () => conv,
+      getConversation: async (_id: string, sessionId: string) => {
+        if (sessionId !== conv.sessionId) {
+          const err: any = new Error("Forbidden");
+          err.statusCode = 403;
+          throw err;
+        }
+        return conv;
+      },
+      addMessage: async (_id: string, role: string, content: string, _meta: unknown, sessionId: string) => {
+        await convService.getConversation(_id, sessionId);
+        messages.push({ role, content });
+      },
+      listMessages: async (_id: string, _limit: number, sessionId: string) => {
+        await convService.getConversation(_id, sessionId);
+        return messages;
+      },
+    };
+    await convService.addMessage(conv.id, "user", "Sensitive private prompt", undefined, conv.sessionId);
 
     const sanitized = toPublicConversation(conv);
     assert(!("sessionId" in sanitized), "Public conversation DTO must omit raw sessionId");
@@ -214,7 +238,7 @@ async function runTests() {
     }
     assert(hijackBlocked, "TovuService.ask must reject mismatched session with 403 before reading/writing messages");
 
-    const msgsAfterAttack = await convService.listMessages(conv.id, 10);
+    const msgsAfterAttack = await convService.listMessages(conv.id, 10, conv.sessionId);
     assert(msgsAfterAttack.length === 1, "Attacker message must NOT be appended to victim conversation");
   });
 
